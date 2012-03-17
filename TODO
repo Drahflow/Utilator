@@ -13,7 +13,6 @@ Tasks / Dates:
     * usually constant
     * or deadline
     * Need to identify tasks which have zero remaining utility
-  * Utility Unit
   * Time estimate (for 100%)
   * Time taken
   * Likelyhood of it suceeding over time
@@ -29,6 +28,7 @@ Tasks / Dates:
     * Thing to affect (GID)
   * Status
     * open
+    * repeating (copy on open) (represented as -1)
     * completed x%
     * closed
   * Closed At
@@ -40,11 +40,13 @@ Expectations:
   * GID
   * Title
   * Author
-  * Default Tasks (GIDs)
+  * Default Tasks (implicit due to task effects)
+    * make a "eat" task and reopening
   * Utility of values
   * Derivative over Time
   * Current value
   * Current value last calculated at
+  * Publication status
 
 Location:
   * GID
@@ -59,8 +61,3 @@ Location connection:
   * GIDb
   * Author
   * Time estimate
-
-Utility Unit Conversion Rates:
-  * A
-  * B
-  * A / B

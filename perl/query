@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Global qw(/.*/);
+use Data::Dumper;
+
+my @tasks =
+  sort { $a->{'current_utility'} <=> $b->{'current_utility'} }
+  map { evaluate_utility($_) }
+  @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })};
+SELECT * FROM task WHERE status < 100
+EOSQL
+
+print Dumper(\@tasks);
+
+sub evaluate_utility {
+  my ($task) = @_;
+  print Dumper($task);
+
+  my $time_estimate;
+
+  if($task->{'status'} > 0) {
+    $time_estimate = $task->{'seconds_estimate'} * (100 - $task->{'status'}) / 100;
+  } else {
+    $time_estimate = $task->{'seconds_estimate'};
+  }
+
+  my $utility = evaluate_time_distribution(time, 0, [map { $_->{'distribution'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'id'})}]);
+SELECT distribution FROM task_utility WHERE task = ?
+EOSQL
+
+  my $likelyhood_time = evaluate_time_distribution(time, 990000, [map { $_->{'distribution'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'id'})}]);
+SELECT distribution FROM task_likelyhood_time WHERE task = ?
+EOSQL
+
+  $task->{'current_utility'} = $utility * $likelyhood_time / $time_estimate;
+  
+  return $task;
+}
+
+sub evaluate_time_distribution {
+  my ($time, $default, $spec) = @_;
+
+  my $value = @$spec? 0: $default;
+
+  foreach my $spec (@$spec) {
+    if($spec =~ /^constant:(.*)/) {
+      $value += $1;
+    } else {
+      warn "unknown distribution spec: $spec";
+    }
+  }
+
+  return $value;
+}

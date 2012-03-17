@@ -1,0 +1,15 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Global qw(/.*/);
+use Data::Dumper;
+
+my $best;
+
+my @tasks = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} });
+SELECT * FROM task WHERE status < 100
+EOSQL
+
+die Dumper(\@tasks);

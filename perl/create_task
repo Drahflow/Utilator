@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Global qw(/.*/);
+
+my $gid = create_gid();
+my $author = 'mailto://drahflow@gmx.de';
+my $title = $ARGV[0] or die "no title specified";
+my $utility = $ARGV[1] or die "no utility given";
+my $seconds_estimate = $ARGV[2] or die "no time estimate specified";
+my $publication = PUBLICATION_PRIVATE;
+
+dbh()->do(<<EOSQL, {}, $gid, $author, $title, $seconds_estimate, 0, 0, $publication);
+INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication) VALUES (?, ?, ?, ?, ?, ?, ?)
+EOSQL
+
+my $id = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid)->[0]->{'id'};
+SELECT id FROM task WHERE gid = ?
+EOSQL
+
+dbh()->do(<<EOSQL, {}, $id, "constant:$utility");
+INSERT INTO task_utility (task, distribution) VALUES (?, ?)
+EOSQL
+
+dbh()->disconnect();
+
+print "$gid\n";

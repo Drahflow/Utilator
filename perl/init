@@ -1,0 +1,136 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Global qw(dbh);
+
+dbh()->do(<<EOSQL);
+CREATE TABLE task (
+  id INTEGER PRIMARY KEY,
+  gid BLOB NOT NULL,
+  title TEXT,
+  description TEXT,
+  author BLOB,
+  seconds_estimate INTEGER,
+  seconds_taken INTEGER,
+  status INTEGER,
+  closed_at TEXT,
+  publication INTEGER
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE expectation (
+  id INTEGER PRIMARY KEY,
+  gid BLOB NOT NULL,
+  title TEXT,
+  author BLOB,
+  publication INTEGER,
+  value INTEGER,
+  last_calculated TEXT
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE task_utility (
+  id INTEGER PRIMARY KEY,
+  task INTEGER REFERENCES task (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
+  distribution TEXT NOT NULL
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX task_utility_idx ON task_utility (task);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE task_likelyhood_time (
+  id INTEGER PRIMARY KEY,
+  task INTEGER REFERENCES task (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
+  distribution TEXT NOT NULL
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX task_likelyhood_time_idx ON task_likelyhood_time (task);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE task_likelyhood_space (
+  id INTEGER PRIMARY KEY,
+  task INTEGER REFERENCES task (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
+  distribution TEXT NOT NULL
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX task_likelyhood_space_idx ON task_likelyhood_space (task);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE task_precondition (
+  id INTEGER PRIMARY KEY,
+  task INTEGER REFERENCES task (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
+  precondition TEXT NOT NULL
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX task_precondition_idx ON task_precondition (task);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE task_effect (
+  id INTEGER PRIMARY KEY,
+  task INTEGER REFERENCES task (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
+  expectation INTEGER REFERENCES expectation (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
+  effect TEXT NOT NULL
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX task_effect_idx1 ON task_effect (task);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX task_effect_idx2 ON task_effect (expectation);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE task_external (
+  id INTEGER PRIMARY KEY,
+  task INTEGER REFERENCES task (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
+  external TEXT
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX task_external_idx ON task_external (task);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE expectation_utilities (
+  id INTEGER PRIMARY KEY,
+  expectation INTEGER REFERENCES expectation (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
+  distribution TEXT NOT NULL
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX expectation_utilities_idx ON expectation_utilities (expectation);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE expectation_derivative (
+  id INTEGER PRIMARY KEY,
+  expectation INTEGER REFERENCES expectation (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
+  distribution TEXT NOT NULL
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX expectation_derivative_idx ON expectation_derivative (expectation);
+EOSQL
+
+dbh()->disconnect();
