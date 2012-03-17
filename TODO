@@ -1,0 +1,66 @@
+Stuff we manage:
+  * Dates
+  * Tasks
+  * Expectations
+
+Tasks / Dates:
+  * GID
+  * Title
+  * Description
+  * Author / Utility Reference / Payer / Principal Checking URL
+    * mail://foo@bar.com
+  * Utilities over Time
+    * usually constant
+    * or deadline
+    * Need to identify tasks which have zero remaining utility
+  * Utility Unit
+  * Time estimate (for 100%)
+  * Time taken
+  * Likelyhood of it suceeding over time
+    * Input via Day X Time
+    * Dates just are one-time tasks
+  * Likelyhood of it suceeding over space
+    * GIDs of Locations
+  * Other preconditions
+    * GIDs of other Tasks
+  * Effects on Expectations
+    * reduction by x%
+    * total offset
+    * Thing to affect (GID)
+  * Status
+    * open
+    * completed x%
+    * closed
+  * Closed At
+  * Publication status
+    * Local / Personal / Transparency / Offer
+  * External IDs
+
+Expectations:
+  * GID
+  * Title
+  * Author
+  * Default Tasks (GIDs)
+  * Utility of values
+  * Derivative over Time
+  * Current value
+  * Current value last calculated at
+
+Location:
+  * GID
+  * Author
+  * URI
+  * Gaussian
+  * Stuff to automatically identify location
+
+Location connection:
+  * GID
+  * GIDa
+  * GIDb
+  * Author
+  * Time estimate
+
+Utility Unit Conversion Rates:
+  * A
+  * B
+  * A / B
