@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use encoding 'utf-8';
 
 use Global qw(/.*/);
 
@@ -20,7 +21,7 @@ my $id = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid)->[0]->{'id'};
 SELECT id FROM task WHERE gid = ?
 EOSQL
 
-dbh()->do(<<EOSQL, {}, $id, "constant:$utility");
+dbh()->do(<<EOSQL, {}, $id, "0constant:$utility");
 INSERT INTO task_utility (task, distribution) VALUES (?, ?)
 EOSQL
 

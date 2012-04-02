@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use encoding 'utf-8';
 
 use Global qw(/.*/);
 use Data::Dumper;
@@ -45,11 +46,17 @@ sub evaluate_time_distribution {
 
   my $value = @$spec? 0: $default;
 
-  foreach my $spec (@$spec) {
+  foreach my $spec (sort @$spec) {
+    $spec =~ s/^.//;
+
     if($spec =~ /^constant:(.*)/) {
       $value += $1;
+    } elsif($spec =~ /^mulrange:(.*);(.*);(.*)/) {
+      if($1 < $time and $time < $2) {
+        $value *= $3;
+      }
     } else {
-      warn "unknown distribution spec: $spec";
+      die "unknown distribution spec: $spec";
     }
   }
 

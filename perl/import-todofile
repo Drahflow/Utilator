@@ -1,0 +1,103 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Date::Parse qw(str2time);
+use Date::Format qw(time2str);
+use List::Util qw(min max);
+use Data::Dumper;
+
+use Global qw(/./);
+
+my $maxDuration = 999999999;
+my $author = 'mailto://drahflow@gmx.de';
+
+my @tasks;
+
+foreach my $file (qw(todo ideas)) {
+  open FILE, '<', "$ENV{HOME}/$file" or die "cannot open ~/$file: $!";
+  while(my $line = <FILE>) {
+    if($line =~ /^\s*(?'category'[*ufb])\s*(?'title'.+)\s+\((?'utility'[0-9.]+),\s*(?'time'[0-9.]+\s*[wdhms])(?:\s*,\s*(?'deadline'[0-9:T-]+))?(?:\s*,\s*\[(?'args'.*)\])?\)$/) {
+      push @tasks, {%+};
+    } elsif($line =~ /^\s*(?'category'[*ufb])\s*(?'title'.+)\s+\((?:\s*\[(?'args'.*)\])?\)$/) {
+      push @tasks, {%+};
+    }
+  }
+  close FILE;
+}
+
+sub interpretUnit {
+  my ($str) = @_;
+  
+  $str =~ /(?'amount'[0-9.]+)\s*(?'unit'[wdhms])/ or die "bad time spec: $str";
+
+  return $+{'amount'} * {
+      's' => 1,
+      'm' => 60,
+      'h' => 60 * 60,
+      'd' => 60 * 60 * 12,
+      'w' => 60 * 60 * 10 * 7,
+    }->{$+{'unit'}};
+}
+
+foreach my $t (@tasks) {
+  if(exists $t->{'args'}) {
+    foreach my $arg (split /\s*,\s*/, $t->{'args'}) {
+      my ($k, $v) = split /\s*=\s*/, $arg;
+      $t->{$k} = $v;
+    }
+
+    delete $t->{'args'};
+  }
+
+  $t->{'time'} = interpretUnit($t->{'time'});
+
+  my $gid = create_gid();
+
+  dbh()->do(<<EOSQL, {}, $gid, $author, $t->{'title'}, $t->{'time'}, 0, 0, PUBLICATION_PRIVATE);
+  INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication) VALUES (?, ?, ?, ?, ?, ?, ?)
+EOSQL
+
+  my $id = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid)->[0]->{'id'};
+  SELECT id FROM task WHERE gid = ?
+EOSQL
+
+  if($t->{'daytime_optimal'}) {
+    my @daytime = localtime str2time($t->{'daytime_optimal'});
+
+    $t->{'daytime_spread'} = interpretUnit($t->{'daytime_spread'});
+
+    for(my $i = -1; $i < 1; $i += 0.4) {
+      dbh()->do(<<EOSQL, {}, $id, "0daytime:" .
+      INSERT INTO task_utility (task, distribution) VALUES (?, ?)
+EOSQL
+        int($t->{'daytime_optimal'} + $t->{'daytime_spread'} * $i) . ";" .
+        int($t->{'daytime_optimal'} + $t->{'daytime_spread'} * ($i + 0.25)) . ";" .
+        int($t->{'utility'} * (1 - abs($i + 0.2))));
+    }
+  } else {
+    dbh()->do(<<EOSQL, {}, $id, "0constant:" . int($t->{'utility'} * 1000000));
+    INSERT INTO task_utility (task, distribution) VALUES (?, ?)
+EOSQL
+  }
+
+  if(exists $t->{'deadline'}) {
+    $t->{'deadline'} = str2time($t->{'deadline'});
+    $t->{'optimal_start'} = $t->{'deadline'} - $t->{'time'} * 3;
+
+    dbh()->do(<<EOSQL, {}, $id, "1mulrange:0;" . $t->{'optimal_start'} . ";300000");
+    INSERT INTO task_utility (task, distribution) VALUES (?, ?)
+EOSQL
+  }
+
+  if(exists $t->{'wait'}) {
+    $t->{'wait'} = str2time($t->{'wait'});
+    dbh()->do(<<EOSQL, {}, $id, "2mulrange:0;" . $t->{'wait'} . ";0");
+    INSERT INTO task_utility (task, distribution) VALUES (?, ?)
+EOSQL
+  }
+
+  print "$gid: " . $t->{'title'} . "\n";
+}
