@@ -1,0 +1,40 @@
+    main:
+[x] current task + desc
+[ ] util explanation (drag scrolls)
+[x] est. time below timer bar
+[x] minimal current util
+[ ]   show existing tasks color coded below that
+[x] start timer on task
+[ ] start timer on any category (task switch to synthetic task)
+[x] finish task: was already done, done, failed retry after (bar on left)
+[x] edit task: full edit, down priorise, fix time estimate / completion state (bar on left)
+[x] new task
+[ ] search for task (popup dialog)
+[ ] edit var states (menu)
+
+    edit task:
+[x] everything shown
+[x] edit title, desc (popups)
+[x] time est., util (inplace)
+[ ] edit var effects: reset to, decrease per time, add var
+[ ] edit publication state
+[x] edit possible times and dates
+[ ] edit possible locations
+[ ] set recurrent flag
+[ ] split task
+[ ] delete task
+
+    calendar: (menu)
+[ ] colored bars per day, color by hidden vars, value by util, touch shows title + select for main
+[ ] month + year view
+[ ] suggest date (util slider for scheduling), next best, accept
+
+    edit vars:
+[ ] name, color, derivative
+[ ] utility over values
+
+    synchronize:
+[ ] aes repo + merging via last edit
+[ ] tasks with external id directly
+[ ] external locations from where to pull new tasks
+[ ] record task completions already factored in for variables
