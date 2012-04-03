@@ -17,7 +17,7 @@ my $author = 'mailto://drahflow@gmx.de';
 my @tasks;
 
 foreach my $file (qw(todo ideas)) {
-  open FILE, '<', "$ENV{HOME}/$file" or die "cannot open ~/$file: $!";
+  open FILE, '<:utf8', "$ENV{HOME}/$file" or die "cannot open ~/$file: $!";
   while(my $line = <FILE>) {
     if($line =~ /^\s*(?'category'[*ufb])\s*(?'title'.+)\s+\((?'utility'[0-9.]+),\s*(?'time'[0-9.]+\s*[wdhms])(?:\s*,\s*(?'deadline'[0-9:T-]+))?(?:\s*,\s*\[(?'args'.*)\])?\)$/) {
       push @tasks, {%+};
@@ -52,12 +52,13 @@ foreach my $t (@tasks) {
     delete $t->{'args'};
   }
 
-  $t->{'time'} = interpretUnit($t->{'time'});
+  $t->{'time'} = int(interpretUnit($t->{'time'}));
 
   my $gid = create_gid();
+  my $now = iso_full_date(time);
 
-  dbh()->do(<<EOSQL, {}, $gid, $author, $t->{'title'}, $t->{'time'}, 0, 0, PUBLICATION_PRIVATE);
-  INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication) VALUES (?, ?, ?, ?, ?, ?, ?)
+  dbh()->do(<<EOSQL, {}, $gid, $author, $t->{'title'}, $t->{'time'}, 0, 0, PUBLICATION_PRIVATE, $now);
+  INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 EOSQL
 
   my $id = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid)->[0]->{'id'};
@@ -78,7 +79,7 @@ EOSQL
         int($t->{'utility'} * (1 - abs($i + 0.2))));
     }
   } else {
-    dbh()->do(<<EOSQL, {}, $id, "0constant:" . int($t->{'utility'} * 1000000));
+    dbh()->do(<<EOSQL, {}, $id, "0constant:" . int($t->{'utility'} * 1000));
     INSERT INTO task_utility (task, distribution) VALUES (?, ?)
 EOSQL
   }
@@ -87,14 +88,14 @@ EOSQL
     $t->{'deadline'} = str2time($t->{'deadline'});
     $t->{'optimal_start'} = $t->{'deadline'} - $t->{'time'} * 3;
 
-    dbh()->do(<<EOSQL, {}, $id, "1mulrange:0;" . $t->{'optimal_start'} . ";300000");
+    dbh()->do(<<EOSQL, {}, $id, "1mulrange:1970-01-01;" . iso_full_date($t->{'optimal_start'}) . ";300");
     INSERT INTO task_utility (task, distribution) VALUES (?, ?)
 EOSQL
   }
 
   if(exists $t->{'wait'}) {
     $t->{'wait'} = str2time($t->{'wait'});
-    dbh()->do(<<EOSQL, {}, $id, "2mulrange:0;" . $t->{'wait'} . ";0");
+    dbh()->do(<<EOSQL, {}, $id, "2mulrange:1970-01-01;" . iso_full_date($t->{'wait'}) . ";0");
     INSERT INTO task_utility (task, distribution) VALUES (?, ?)
 EOSQL
   }

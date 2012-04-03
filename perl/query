@@ -14,11 +14,13 @@ my @tasks =
 SELECT * FROM task WHERE status < 100
 EOSQL
 
-print Dumper(\@tasks);
+foreach my $task (@tasks) {
+  printf "%2.8f u/h: %s\n", $task->{'current_utility'} * 3600, $task->{'title'};
+  printf "  %s\n", [split /\n/, $task->{'description'}]->[0] if defined $task->{'description'};
+}
 
 sub evaluate_utility {
   my ($task) = @_;
-  print Dumper($task);
 
   my $time_estimate;
 
@@ -28,15 +30,15 @@ sub evaluate_utility {
     $time_estimate = $task->{'seconds_estimate'};
   }
 
-  my $utility = evaluate_time_distribution(time, 0, [map { $_->{'distribution'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'id'})}]);
+  my $utility = evaluate_time_distribution(iso_full_date(time), 0, [map { $_->{'distribution'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'id'})}]);
 SELECT distribution FROM task_utility WHERE task = ?
 EOSQL
 
-  my $likelyhood_time = evaluate_time_distribution(time, 990000, [map { $_->{'distribution'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'id'})}]);
+  my $likelyhood_time = evaluate_time_distribution(iso_full_date(time), 990, [map { $_->{'distribution'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'id'})}]);
 SELECT distribution FROM task_likelyhood_time WHERE task = ?
 EOSQL
 
-  $task->{'current_utility'} = $utility * $likelyhood_time / $time_estimate;
+  $task->{'current_utility'} = $utility * $likelyhood_time / $time_estimate / 1000000;
   
   return $task;
 }
@@ -52,8 +54,8 @@ sub evaluate_time_distribution {
     if($spec =~ /^constant:(.*)/) {
       $value += $1;
     } elsif($spec =~ /^mulrange:(.*);(.*);(.*)/) {
-      if($1 < $time and $time < $2) {
-        $value *= $3;
+      if($1 le $time and $time le $2) {
+        $value = $value * $3 / 1000;
       }
     } else {
       die "unknown distribution spec: $spec";

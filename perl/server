@@ -3,11 +3,50 @@
 use strict;
 use warnings;
 use encoding 'utf-8';
-use lib '/var/www/utilator';
+use lib '/opt/utilator';
 
-use Global qw(dbh);
+use Global qw(/./);
+use Synchronize qw(/./);
 use Data::Dumper;
+use Digest::MD5 qw(md5_hex);
+use Encode qw(decode_utf8 encode_utf8);
+use JSON;
 
-my $stuff;
-my $len = read(STDIN, $stuff, $ENV{'CONTENT_LENGTH'});
+BEGIN {
+  binmode(STDIN, ':utf8');
+  binmode(STDOUT, ':utf8');
+  binmode(STDERR, ':utf8');
+}
 
+if(not defined $ENV{'CONTENT_LENGTH'}) {
+  print "Content-Type: text/html\n\n";
+  print <<'EOHTML';
+<html><head><title>
+You're doing it wrong!
+</title></head><body>
+Please contact drahflow@gmx.de to get a clue what to send here.
+</body></html>
+EOHTML
+  exit 0;
+}
+
+eval {
+  my $stuff;
+  my $len = read(STDIN, $stuff, $ENV{'CONTENT_LENGTH'});
+
+  my $in = decode_json(encode_utf8($stuff));
+  warn Dumper($in);
+  if(md5_hex($in->{'secret'}) ne '2c9227062bb4e74abf3d6bfd58e59c5e') {
+    die "invalid sync secret";
+  }
+
+  my $result = Synchronize::sync($in, 0);
+
+  print "Content-Type: application/json; charset=utf-8\n\n";
+  print decode_utf8(encode_json($result));
+};
+if($@) {
+  print "Content-Type: application/json; charset=utf-8\n\n";
+  warn $@;
+  print decode_utf8(encode_json({'error' => $@}));
+}

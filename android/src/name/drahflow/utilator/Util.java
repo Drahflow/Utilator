@@ -27,7 +27,7 @@ class Util {
 	}
 
 	static SimpleDateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-	static SimpleDateFormat isoFullDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss");
+	static SimpleDateFormat isoFullDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 	static public String humanDate(long time) {
 		return isoDateFormat.format(new Date(time));
 	}

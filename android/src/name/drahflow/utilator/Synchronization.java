@@ -3,9 +3,13 @@ package name.drahflow.utilator;
 import android.app.Activity;
 import android.os.Bundle;
 import android.widget.*;
+import android.util.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import org.json.*;
+
+import static name.drahflow.utilator.Util.*;
 
 public class Synchronization {
 	private Utilator ctx;
@@ -33,19 +37,114 @@ public class Synchronization {
 			}
 		} catch(MalformedURLException mue) {
 			throw new Error("Hard-coded URL was invalid", mue);
+		} catch(JSONException jsone) {
+			Toast toast = Toast.makeText(ctx, "Sync failed: " + jsone.toString(), Toast.LENGTH_SHORT);
+			toast.show();
 		} catch(IOException ioe) {
 			Toast toast = Toast.makeText(ctx, "Sync failed: " + ioe.toString(), Toast.LENGTH_SHORT);
 			toast.show();
 		}
 	}
 
-	private void serializeTasks(OutputStream o) throws IOException {
-		o.write("Test\n".getBytes());
-		o.write("Blub\r\n".getBytes());
-		o.write("Foo\n\r".getBytes());
-		o.close();
+	private void serializeTasks(OutputStream o) throws IOException, JSONException {
+		OutputStreamWriter writer = new OutputStreamWriter(o);
+
+		JSONObject resRoot = new JSONObject();
+		resRoot.put("version", 1);
+		resRoot.put("secret", Secrets.SYNC_SECRET);
+
+		JSONArray resTasks = new JSONArray();
+		resRoot.put("task", resTasks);
+
+		List<Map<String, Object>> tasks = ctx.db.loadAllTasks();
+
+		for(Map<String, Object> task: tasks) {
+			JSONObject resTask = new JSONObject();
+
+			// FIXME: filter publication state
+			for(Map.Entry<String, Object> entry: task.entrySet()) {
+				resTask.put(entry.getKey(), entry.getValue());
+
+				List<Map<String, Object>> utilities = ctx.db.loadTaskUtilities(loadString(task, "gid"));
+				JSONArray resUtils = new JSONArray();
+				for(Map<String, Object> i: utilities) {
+					resUtils.put(loadString(i, "distribution"));
+				}
+				resTask.put("utility", resUtils);
+
+				List<Map<String, Object>> likelyhoodTimes = ctx.db.loadTaskLikelyhoodTime(loadString(task, "gid"));
+				JSONArray resLikelyhoodTimes = new JSONArray();
+				for(Map<String, Object> i: likelyhoodTimes) {
+					resLikelyhoodTimes.put(loadString(i, "distribution"));
+				}
+				resTask.put("likelyhood_time", resLikelyhoodTimes);
+			}
+
+			resTasks.put(resTask);
+		}
+
+		writer.write(resRoot.toString());
+		writer.close();
 	}
 
-	private void deserializeTasks(InputStream i) throws IOException {
+	private void deserializeTasks(InputStream input) throws IOException, JSONException {
+		InputStreamReader reader = new InputStreamReader(input);
+		StringBuilder json = new StringBuilder();
+		char[] buf = new char[4096];
+		int len;
+
+		while((len = reader.read(buf)) > 0) {
+			json.append(buf, 0, len);
+		}
+
+		reader.close();
+
+		//Log.i("Utilator", "JSON received: " + json);
+
+		JSONObject inRoot = (JSONObject)new JSONTokener(json.toString()).nextValue();
+		String error = (String)inRoot.opt("error");
+		if(error != null) {
+			Toast toast = Toast.makeText(ctx, "Sync failed: " + error, Toast.LENGTH_SHORT);
+			toast.show();
+			return;
+		}
+
+		JSONArray inTasks = inRoot.getJSONArray("task");
+
+		for(int i = 0; i < inTasks.length(); ++i) {
+			JSONObject inTask = inTasks.getJSONObject(i);
+			Map<String, Object> task = ctx.db.loadTask(inTask.getString("gid"));
+
+			if(task == null) {
+				ctx.db.createEmptyTask(inTask.getString("gid"));
+				writeTask(inTask);
+			} else if(task.get("last_edit") == null) {
+				writeTask(inTask);
+			} else if(loadString(task, "last_edit").compareTo(inTask.getString("last_edit")) < 0) {
+				writeTask(inTask);
+			}
+		}
+	}
+
+	private void writeTask(JSONObject inTask) throws JSONException {
+		Map<String, Object> task = new HashMap<String, Object>();
+		for(String key: Arrays.asList("gid", "title", "description", "author", "seconds_estimate", "seconds_taken", "status", "closed_at", "publication", "last_edit")) {
+			task.put(key, inTask.getString(key));
+		}
+
+		ctx.db.updateTask(task);
+		final String gid = loadString(task, "gid");
+
+		ctx.db.deleteUtilities(gid);
+		JSONArray inUtilities = inTask.getJSONArray("utility");
+		for(int i = 0; i < inUtilities.length(); ++i) {
+			ctx.db.addUtility(gid, inUtilities.getString(i));
+		}
+
+		ctx.db.deleteLikelyhoodsTime(gid);
+		JSONArray inLikelyhoodTime = inTask.getJSONArray("likelyhood_time");
+		for(int i = 0; i < inLikelyhoodTime.length(); ++i) {
+			ctx.db.addLikelyhoodTime(gid, inLikelyhoodTime.getString(i));
+		}
 	}
 }

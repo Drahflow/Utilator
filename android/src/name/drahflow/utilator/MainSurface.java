@@ -2,6 +2,7 @@ package name.drahflow.utilator;
 
 import android.app.*;
 import android.graphics.*;
+import android.widget.*;
 import android.view.*;
 import android.content.*;
 import android.util.*;
@@ -24,6 +25,11 @@ class MainSurface extends WidgetView {
 	}
 
 	public void setTask(String gid) {
+		if(gid == null) {
+			currentTask = null;
+			return;
+		}
+
 		currentTask = ctx.db.loadTask(gid);
 
 		Log.i("Utilator", "MainSurface, loaded task: " + currentTask);
@@ -40,7 +46,11 @@ class MainSurface extends WidgetView {
 	public void onDraw(Canvas c) {
 		super.onDraw(c);
 
-		if(currentTask == null) return;
+		if(currentTask == null) {
+			String noTask = "No useful task currently exists.";
+			c.drawText(noTask, (getWidth() - PRIMARY_COLOR.measureText(noTask)) / 2, 100, PRIMARY_COLOR);
+			return;
+		}
 
 		int y = 16;
 		for(String line: loadString(currentTask, "title").split("\n")) {
@@ -50,6 +60,9 @@ class MainSurface extends WidgetView {
 		for(String line: loadString(currentTask, "description").split("\n")) {
 			y = drawWrapped(c, line, 10, 320, y, PRIMARY_COLOR) + 20;
 		}
+
+		float importance = Distribution.calculateImportance(ctx, new Date(), currentTask);
+		y = drawWrapped(c, importance * 3600 + " u / h", 10, 320, y, PRIMARY_COLOR) + 20;
 
 		c.drawLine(0, 198, getWidth() * (loadInt(currentTask, "seconds_taken") + timeRunning) /
 				loadInt(currentTask, "seconds_estimate"), 198, PRIMARY_COLOR);
@@ -136,14 +149,24 @@ class MainSurface extends WidgetView {
 			}
 
 			@Override public void invokeAction(int n) {
+				if(currentTask == null) {
+					toast("There is no task");
+					return;
+				}
+
 				switch(n) {
 					case 0:
 						Log.i("Utilator", "MainSurface, task failed, retry in " + retryTime);
+						if(ctx.db.loadTaskLikelyhoodTime(loadString(currentTask, "gid")).isEmpty()) {
+							ctx.db.addLikelyhoodTime(loadString(currentTask, "gid"), "0constant:990");
+						}
+
 						ctx.db.addLikelyhoodTime(
 								loadString(currentTask, "gid"),
 								"2mulrange:" + isoFullDate(new Date()) +
 								";" + isoFullDate(new Date(new Date().getTime() + retryTime * 1000)) +
 								";0");
+						ctx.db.touchTask(loadString(currentTask, "gid"));
 
 						ctx.switchToBestTask();
 						break;
@@ -156,6 +179,7 @@ class MainSurface extends WidgetView {
 						ctx.db.setStatus(
 								loadString(currentTask, "gid"),
 								100);
+						ctx.db.touchTask(loadString(currentTask, "gid"));
 
 						ctx.switchToBestTask();
 						break;
@@ -165,6 +189,7 @@ class MainSurface extends WidgetView {
 						ctx.db.setStatus(
 								loadString(currentTask, "gid"),
 								100);
+						ctx.db.touchTask(loadString(currentTask, "gid"));
 
 						ctx.switchToBestTask();
 						break;
@@ -201,20 +226,37 @@ class MainSurface extends WidgetView {
 			@Override public void invokeAction(int n) {
 				switch(n) {
 					case 0:
+						if(currentTask == null) {
+							toast("There is no task");
+							return;
+						}
+
 						Log.i("Utilator", "MainSurface, task completion " + selectedStatus);
 						ctx.db.setStatus(loadString(currentTask, "gid"), selectedStatus);
+						ctx.db.touchTask(loadString(currentTask, "gid"));
 
 						ctx.switchToBestTask();
 						break;
 
 					case 1:
+						if(currentTask == null) {
+							toast("There is no task");
+							return;
+						}
+
 						Log.i("Utilator", "MainSurface, task utility changed to " + selectedUtility);
 						ctx.db.setUtility(loadString(currentTask, "gid"), selectedUtility);
+						ctx.db.touchTask(loadString(currentTask, "gid"));
 
 						ctx.switchToBestTask();
 						break;
 
 					case 2: {
+						if(currentTask == null) {
+							toast("There is no task");
+							return;
+						}
+
 						Log.i("Utilator", "MainSurface, editing task");
 						EditSurface editor = new EditSurface(ctx);
 						editor.setTask(loadString(currentTask, "gid"));
@@ -233,6 +275,7 @@ class MainSurface extends WidgetView {
 						task.put("status", 0);
 						
 						String gid = ctx.db.createTask(task);
+						ctx.db.touchTask(gid);
 
 						EditSurface editor = new EditSurface(ctx);
 						editor.setTask(gid);
@@ -252,6 +295,15 @@ class MainSurface extends WidgetView {
 	}
 
 	public void reloadTask() {
-		setTask(loadString(currentTask, "gid"));
+		if(currentTask == null) {
+			ctx.switchToBestTask();
+		} else {
+			setTask(loadString(currentTask, "gid"));
+		}
+	}
+	
+	private void toast(String msg) {
+		Toast toast = Toast.makeText(ctx, msg, Toast.LENGTH_SHORT);
+		toast.show();
 	}
 }

@@ -25,7 +25,8 @@ class DatabaseOpenHelper extends SQLiteOpenHelper {
 				"  seconds_taken INTEGER," +
 				"  status INTEGER," +
 				"  closed_at TEXT," +
-				"  publication INTEGER" +
+				"  publication INTEGER," +
+				"  last_edit TEXT" +
 				");" +
 				"");
 

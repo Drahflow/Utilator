@@ -34,7 +34,7 @@
 [ ] utility over values
 
     synchronize:
-[ ] aes repo + merging via last edit
+[x] ssl repo + merging via last edit
 [ ] tasks with external id directly
 [ ] external locations from where to pull new tasks
 [ ] record task completions already factored in for variables

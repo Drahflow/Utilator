@@ -1,0 +1,19 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Global qw(/./);
+use Synchronize qw(/./);
+use JSON;
+
+my $input = join '', <STDIN>;
+
+if($input ne '') {
+  $input = decode_json($input);
+} else {
+  $input = { 'task' => [] };
+}
+
+print encode_json(Synchronize::sync($input, 0));

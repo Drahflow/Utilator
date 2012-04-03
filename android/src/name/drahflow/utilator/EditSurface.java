@@ -91,6 +91,7 @@ class EditSurface extends WidgetView {
 											Log.i("Utilator", "EditSurface, title changed to: " + title);
 
 											ctx.db.setTitle(loadString(currentTask, "gid"), title);
+											ctx.db.touchTask(loadString(currentTask, "gid"));
 											setTask(loadString(currentTask, "gid"));
 										}
 								}).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -113,6 +114,7 @@ class EditSurface extends WidgetView {
 											Log.i("Utilator", "EditSurface, description changed to: " + description);
 
 											ctx.db.setDescription(loadString(currentTask, "gid"), description);
+											ctx.db.touchTask(loadString(currentTask, "gid"));
 											setTask(loadString(currentTask, "gid"));
 										}
 								}).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -149,6 +151,7 @@ class EditSurface extends WidgetView {
 					case 0:
 						Log.i("Utilator", "EditSurface, time estimated set: " + selectedTime);
 						ctx.db.setSecondsEstimate(loadString(currentTask, "gid"), selectedTime);
+						ctx.db.touchTask(loadString(currentTask, "gid"));
 						setTask(loadString(currentTask, "gid"));
 				}
 			}
@@ -178,6 +181,7 @@ class EditSurface extends WidgetView {
 						String entry = "0constant:" + selectedUtility;
 						Log.i("Utilator", "EditSurface, utility added: " + entry);
 						ctx.db.addUtility(loadString(currentTask, "gid"), entry);
+						ctx.db.touchTask(loadString(currentTask, "gid"));
 						setTask(loadString(currentTask, "gid"));
 				}
 			}
@@ -199,6 +203,7 @@ class EditSurface extends WidgetView {
 					case 0:
 						Log.i("Utilator", "EditSurface, utilities cleared");
 						ctx.db.deleteUtilities(loadString(currentTask, "gid"));
+						ctx.db.touchTask(loadString(currentTask, "gid"));
 						setTask(loadString(currentTask, "gid"));
 				}
 			}
@@ -243,6 +248,9 @@ class EditSurface extends WidgetView {
 						cal.set(Calendar.MINUTE, 0);
 						cal.set(Calendar.SECOND, 0);
 
+						if(currentTaskLikelyhoodTime.isEmpty()) {
+							ctx.db.addLikelyhoodTime(loadString(currentTask, "gid"), "0constant:990");
+						}
 						boolean existed = false;
 						for(Map<String, Object> entry: currentTaskLikelyhoodTime) {
 							Log.i("Utilator", "EditSurface, checking: " + loadString(entry, "distribution"));
@@ -252,13 +260,15 @@ class EditSurface extends WidgetView {
 								String mask = e.toString();
 								Log.i("Utilator", "EditSurface, day mask updated: " + mask);
 								ctx.db.updateLikelyhoodTime(loadString(entry, "id"), mask);
+								ctx.db.touchTask(loadString(currentTask, "gid"));
 								existed = true;
 							}
 						}
 						if(!existed) {
-							String mask = "1muldays:" + isoDate(cal.getTime()) + ";1";
+							String mask = "1muldays:" + isoDate(cal.getTime()) + ";1000";
 							Log.i("Utilator", "EditSurface, day mask added: " + mask);
 							ctx.db.addLikelyhoodTime(loadString(currentTask, "gid"), mask);
+							ctx.db.touchTask(loadString(currentTask, "gid"));
 						}
 
 						setTask(loadString(currentTask, "gid"));
@@ -296,22 +306,27 @@ class EditSurface extends WidgetView {
 			@Override public void invokeAction(int n) {
 				switch(n) {
 					case 0:
+						if(currentTaskLikelyhoodTime.isEmpty()) {
+							ctx.db.addLikelyhoodTime(loadString(currentTask, "gid"), "0constant:990");
+						}
 						boolean existed = false;
 						for(Map<String, Object> entry: currentTaskLikelyhoodTime) {
 							Log.i("Utilator", "EditSurface, checking: " + loadString(entry, "distribution"));
 							if(loadString(entry, "distribution").matches("^.mulhours:.*")) {
 								Distribution.Mulhours e = Distribution.parseMulhours(loadString(entry, "distribution"));
-								e.hours.add(selectedHour + "." + selectedMinute + "+" + selectedDuration);
+								e.hours.add(String.format("%02d:%02d+%d", selectedHour, selectedMinute, selectedDuration));
 								String mask = e.toString();
 								Log.i("Utilator", "EditSurface, hour mask updated: " + mask);
 								ctx.db.updateLikelyhoodTime(loadString(entry, "id"), mask);
+								ctx.db.touchTask(loadString(currentTask, "gid"));
 								existed = true;
 							}
 						}
 						if(!existed) {
-							String mask = "1mulhours:" + selectedHour + "." + selectedMinute + "+" + selectedDuration + ";1";
-							Log.i("Utilator", "EditSurface, day mask added: " + mask);
+							String mask = String.format("1mulhours:%02d:%02d+%d;1000", selectedHour, selectedMinute, selectedDuration);
+							Log.i("Utilator", "EditSurface, hour mask added: " + mask);
 							ctx.db.addLikelyhoodTime(loadString(currentTask, "gid"), mask);
+							ctx.db.touchTask(loadString(currentTask, "gid"));
 						}
 
 						setTask(loadString(currentTask, "gid"));
@@ -335,6 +350,7 @@ class EditSurface extends WidgetView {
 					case 0:
 						Log.i("Utilator", "EditSurface, time masks cleared");
 						ctx.db.deleteLikelyhoodsTime(loadString(currentTask, "gid"));
+						ctx.db.touchTask(loadString(currentTask, "gid"));
 						setTask(loadString(currentTask, "gid"));
 				}
 			}

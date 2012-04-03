@@ -9,6 +9,8 @@ import android.database.*;
 import android.database.sqlite.*;
 import java.util.*;
 
+import static name.drahflow.utilator.Util.*;
+
 public class Database {
 	private SQLiteDatabase db;
 
@@ -16,11 +18,27 @@ public class Database {
 		db = new DatabaseOpenHelper(ctx).getWritableDatabase();
 	}
 
-	public Collection<Map<String, Object>> loadTasks() {
+	public List<Map<String, Object>> loadAllTasks() {
 		List<Map<String, Object>> r = new ArrayList<Map<String, Object>>();
 
 		Cursor res = db.rawQuery(
-				"SELECT gid, title, description, seconds_estimate, seconds_taken, status FROM task WHERE status < 100",
+				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task",
+				new String[] { });
+		String[] cols = res.getColumnNames();
+
+		// optimize to only store strings once
+		while(res.moveToNext()) {
+			r.add(loadCursorRow(cols, res));
+		}
+
+		return r;
+	}
+
+	public List<Map<String, Object>> loadOpenTasks() {
+		List<Map<String, Object>> r = new ArrayList<Map<String, Object>>();
+
+		Cursor res = db.rawQuery(
+				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task WHERE status < 100",
 				new String[] { });
 		String[] cols = res.getColumnNames();
 
@@ -46,7 +64,7 @@ public class Database {
 		Map<String, Object> r = new HashMap<String, Object>();
 
 		Cursor res = db.rawQuery(
-				"SELECT gid, title, description, seconds_estimate, seconds_taken, status FROM task WHERE gid = ?",
+				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task WHERE gid = ?",
 				new String[] { gid });
 		String[] cols = res.getColumnNames();
 
@@ -97,8 +115,8 @@ public class Database {
 		db.beginTransaction();
 		try {
 			db.execSQL(
-					"INSERT INTO task (gid, title, description, seconds_estimate, seconds_taken, status) VALUES (?, ?, ?, ?, ?, ?)",
-					mapArrayDeref(task, "gid", "title", "description", "seconds_estimate", "seconds_taken", "status"));
+					"INSERT INTO task (gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+					mapArrayDeref(task, "gid", "title", "description", "author", "seconds_estimate", "seconds_taken", "status", "closed_at", "publication", "last_edit"));
 			db.setTransactionSuccessful();
 		} finally {
 			db.endTransaction();
@@ -107,6 +125,38 @@ public class Database {
 		Log.i("Utilator", "Task newly created: " + task.get("gid"));
 
 		return task.get("gid").toString();
+	}
+
+	public void createEmptyTask(String gid) {
+		db.beginTransaction();
+		try {
+			db.execSQL("INSERT INTO task (gid) VALUES (?)", new String[] { gid });
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
+	}
+
+	public void touchTask(String gid) {
+		db.beginTransaction();
+		try {
+			db.execSQL("UPDATE task SET last_edit = ? WHERE gid = ?", new String[] { isoFullDate(new Date()), gid });
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
+	}
+
+	public void updateTask(Map<String, Object> task) {
+		db.beginTransaction();
+		try {
+			db.execSQL(
+					"UPDATE task SET title = ?, description = ?, author = ?, seconds_estimate = ?, seconds_taken = ?, status = ?, closed_at = ?, publication = ?, last_edit = ? WHERE gid = ?",
+					mapArrayDeref(task, "title", "description", "author", "seconds_estimate", "seconds_taken", "status", "closed_at", "publication", "last_edit", "gid"));
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
 	}
 
 	public void addTimeTaken(String gid, int time) {
@@ -233,7 +283,8 @@ public class Database {
 		String[] res = new String[keys.length];
 
 		for(int i = 0; i < keys.length; ++i) {
-			res[i] = map.get(keys[i]).toString();
+			Object o = map.get(keys[i]);
+			res[i] = o != null? o.toString(): null;
 		}
 
 		return res;
