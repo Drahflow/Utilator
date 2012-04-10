@@ -58,11 +58,14 @@ abstract class WidgetView extends View {
 				c.drawRect(actions[i], SECONDARY_COLOR);
 
 				final String name = actionNames[i];
-				c.drawText(name, actions[i].centerX() - PRIMARY_COLOR.measureText(name) / 2, actions[i].centerY(), PRIMARY_COLOR);
+				float textStart = actions[i].centerX() - PRIMARY_COLOR.measureText(name) / 2;
+				if(textStart < 0) textStart = 0;
+
+				c.drawText(name, textStart, actions[i].centerY(), PRIMARY_COLOR);
 
 				if(actions[i].height() > 100) {
-					c.drawText(name, actions[i].centerX() - PRIMARY_COLOR.measureText(name) / 2, actions[i].top + 20, PRIMARY_COLOR);
-					c.drawText(name, actions[i].centerX() - PRIMARY_COLOR.measureText(name) / 2, actions[i].bottom - 5, PRIMARY_COLOR);
+					c.drawText(name, textStart, actions[i].top + 20, PRIMARY_COLOR);
+					c.drawText(name, textStart, actions[i].bottom - 5, PRIMARY_COLOR);
 				}
 			}
 		}
@@ -98,6 +101,8 @@ abstract class WidgetView extends View {
 	}
 
 	public boolean onTouchEvent(MotionEvent e) {
+		if(widgets == null) return false; // wait for setup first, i.e. wait for first drawing
+
 		int x = (int)e.getX(0);
 		int y = (int)e.getY(0);
 

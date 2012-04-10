@@ -2,7 +2,7 @@ package Global;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(dbh create_gid iso_date iso_full_date PUBLICATION_LOCAL PUBLICATION_PRIVATE PUBLICATION_TRANSPARENCY PUBLICATION_OFFER);
+@EXPORT_OK = qw(dbh create_gid iso_date iso_full_date interpretUnit reverseInterpretUnit PUBLICATION_LOCAL PUBLICATION_PRIVATE PUBLICATION_MASKED PUBLICATION_TRANSPARENCY PUBLICATION_OFFER);
 
 use strict;
 use warnings;
@@ -45,9 +45,42 @@ sub iso_full_date($) {
   return time2str('%Y-%m-%dT%H:%M:%S', shift);
 }
 
+sub interpretUnit {
+  my ($str) = @_;
+  
+  $str =~ /(?'amount'[0-9.]+)\s*(?'unit'[wdhms])/ or die "bad time spec: $str";
+
+  return $+{'amount'} * {
+      's' => 1,
+      'm' => 60,
+      'h' => 60 * 60,
+      'd' => 60 * 60 * 12,
+      'w' => 60 * 60 * 10 * 7,
+    }->{$+{'unit'}};
+}
+
+sub reverseInterpretUnit($) {
+  my ($time) = @_;
+
+  if($time < 60 * 2) {
+    return $time . "s";
+  } elsif($time < 60 * 60 * 2) {
+    return $time / 60 . "m";
+  } elsif($time < 60 * 60 * 24 * 2) {
+    return $time / 60 / 60 . "h";
+  } elsif($time < 60 * 60 * 12 * 9) {
+    return $time / 60 / 60 / 12 . "d";
+  } elsif($time < 60 * 60 * 10 * 5 * 100) {
+    return $time / 60 / 60 / 10 / 5 . "w";
+  } else {
+    return $time / 60 / 60 / 10 / 5 / 52 . "y";
+  }     
+} 
+
 use constant PUBLICATION_LOCAL => 0;
 use constant PUBLICATION_PRIVATE => 1;
-use constant PUBLICATION_TRANSPARENCY => 2;
-use constant PUBLICATION_OFFER => 3;
+use constant PUBLICATION_MASKED => 2;
+use constant PUBLICATION_TRANSPARENCY => 3;
+use constant PUBLICATION_OFFER => 4;
 
 1;

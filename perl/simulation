@@ -1,0 +1,50 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Global qw(/./);
+use Query qw(/./);
+use Data::Dumper;
+
+my $maxCount = 999999;
+$maxCount = $ARGV[0] if(defined $ARGV[0]);
+my $opts = ($ARGV[1] or '');
+
+my $gid = $opts =~ /g/;
+my $start = time;
+my $now = $start;
+
+my @tasks = Query::sortedTasks(iso_full_date($now));
+Query::compileDistributions($_) foreach @tasks;
+
+my $taskStart = $start;
+my $taskStartUtil = undef;
+my $taskRunning = undef;
+while($now < $start + 86400 * 365 and @tasks) {
+  my $nowStr = iso_full_date($now);
+
+  @tasks = map { Query::evaluate_utility_compiled($nowStr, $_) } @tasks;
+  @tasks = reverse sort { $a->{'current_utility'} <=> $b->{'current_utility'} } @tasks;
+  $taskStartUtil = $tasks[0]->{'current_utility'} unless defined $taskStartUtil;
+
+  if(not defined $taskRunning or $tasks[0] != $taskRunning) {
+    if(defined $taskRunning) {
+      printf "%s - %s: %9.7f u/h\n    %s\n",
+        iso_full_date($taskStart), $nowStr, $taskStartUtil * 3600, $taskRunning->{'title'};
+    }
+
+    $taskStart = $now;
+    $taskRunning = $tasks[0];
+    $taskStartUtil = $tasks[0]->{'current_utility'};
+    $taskRunning = $tasks[0];
+  }
+
+  $now += 300;
+  $tasks[0]->{'seconds_estimate'} -= 300;
+
+  while($tasks[0]->{'seconds_estimate'} <= 0) {
+    shift @tasks;
+  }
+}

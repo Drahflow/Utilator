@@ -144,7 +144,7 @@ class MainSurface extends WidgetView {
 
 			@Override public void onMove(int x, int y) {
 				retryTime = exponentialMap(y, getHeight());
-				actionNames[0] = "retry " + humanTime(retryTime);
+				actionNames[0] = "retry " + humanTime(retryTime) + " / " + isoFullDate(new Date(new Date().getTime() + retryTime * 1000));
 				super.onMove(x, y);
 			}
 

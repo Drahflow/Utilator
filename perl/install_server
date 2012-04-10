@@ -1,0 +1,4 @@
+#!/bin/sh
+
+scp Global.pm Query.pm Synchronize.pm sync init root@38020.vs.webtropia.com:/opt/utilator/
+scp server root@38020.vs.webtropia.com:/var/www/utilator

@@ -64,22 +64,22 @@ public class Synchronization {
 			// FIXME: filter publication state
 			for(Map.Entry<String, Object> entry: task.entrySet()) {
 				resTask.put(entry.getKey(), entry.getValue());
-
-				List<Map<String, Object>> utilities = ctx.db.loadTaskUtilities(loadString(task, "gid"));
-				JSONArray resUtils = new JSONArray();
-				for(Map<String, Object> i: utilities) {
-					resUtils.put(loadString(i, "distribution"));
-				}
-				resTask.put("utility", resUtils);
-
-				List<Map<String, Object>> likelyhoodTimes = ctx.db.loadTaskLikelyhoodTime(loadString(task, "gid"));
-				JSONArray resLikelyhoodTimes = new JSONArray();
-				for(Map<String, Object> i: likelyhoodTimes) {
-					resLikelyhoodTimes.put(loadString(i, "distribution"));
-				}
-				resTask.put("likelyhood_time", resLikelyhoodTimes);
 			}
 
+			List<Map<String, Object>> utilities = ctx.db.loadTaskUtilities(loadString(task, "gid"));
+			JSONArray resUtils = new JSONArray();
+			for(Map<String, Object> i: utilities) {
+				resUtils.put(loadString(i, "distribution"));
+			}
+			resTask.put("utility", resUtils);
+
+			List<Map<String, Object>> likelyhoodTimes = ctx.db.loadTaskLikelyhoodTime(loadString(task, "gid"));
+			JSONArray resLikelyhoodTimes = new JSONArray();
+			for(Map<String, Object> i: likelyhoodTimes) {
+				resLikelyhoodTimes.put(loadString(i, "distribution"));
+			}
+
+			resTask.put("likelyhood_time", resLikelyhoodTimes);
 			resTasks.put(resTask);
 		}
 

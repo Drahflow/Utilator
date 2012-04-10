@@ -1,0 +1,4 @@
+#!/bin/sh
+
+./sync < /dev/null | ssh -C root@38020.vs.webtropia.com 'cd /opt/utilator && ./sync' | wc
+ssh -C root@38020.vs.webtropia.com 'cd /opt/utilator && ./sync' < /dev/null | ./sync | wc

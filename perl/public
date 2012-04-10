@@ -1,0 +1,70 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+use lib '/opt/utilator';
+
+use Global qw(/./);
+use Query;
+use Data::Dumper;
+use Encode qw(decode_utf8 encode_utf8);
+use JSON;
+
+BEGIN {
+  binmode(STDIN, ':utf8');
+  binmode(STDOUT, ':utf8');
+  binmode(STDERR, ':utf8');
+}
+
+my $now = iso_full_date(time);
+my @tasks = reverse grep { $_->{'publication'} >= PUBLICATION_MASKED } Query::sortedTasks($now);
+foreach my $task (@tasks) {
+  if($task->{'publication'} == PUBLICATION_MASKED) {
+    $task->{'title'} = "I have decided not to disclose the details of this task.";
+    $task->{'description'} = undef;
+    $task->{'author'} = undef;
+  }
+}
+
+print "Content-Type: text/html; charset=utf-8\n\n";
+print <<EOHTML;
+<html>
+<head>
+  <title>Drahflow's current TODOs</title>
+  <style type="text/css">
+    table { border: 1px black; }
+    td { padding: 4px; }
+    body { font-family: sans; }
+    .s { font-size: 50%; }
+  </style>
+</head>
+<body>
+<table>
+  <tr>
+    <th>Title + Description</th>
+    <th>Time estimate</th>
+    <th>Current utility</th>
+    <th>Status</th>
+    <th>Utility expectations</th>
+    <th>Likelyhood assumptions</th>
+  </tr>
+EOHTML
+
+foreach my $task (@tasks) {
+  my $title = $task->{'title'};
+  $title .= '<br>' . $task->{'description'} if $task->{'description'};
+  my $time = reverseInterpretUnit($task->{'seconds_estimate'});
+  my $curUtil = $task->{'current_utility'} * 3600 . ' u/h';
+  my $util = join('<br>', @{Query::getTaskUtility($task) or []});
+  my $likelyhood = join('<br>', @{Query::getTaskLikelyhoodTime($task) or []});
+  my $status = $task->{'status'} . "%";
+
+  print <<"EOHTML";
+<tr><td>$title</td><td>$time</td><td>$curUtil</td><td>$status</td><td class="s">$util</td><td class="s">$likelyhood</td></tr>
+EOHTML
+}
+
+print <<"EOHTML";
+</table></body></html>
+EOHTML

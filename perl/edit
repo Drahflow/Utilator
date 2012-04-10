@@ -1,0 +1,116 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Global qw(/./);
+use Query qw(/./);
+use Data::Dumper;
+use Date::Parse;
+
+my $task = Query::resolveTask($ARGV[0]) or die help();
+my $what = $ARGV[1] or die help();
+
+my $now = iso_full_date(time);
+
+my $gid = $task->{'gid'};
+
+if($what eq 'done') {
+  dbh()->do(<<EOSQL, {}, $now, $now, $gid);
+  UPDATE task SET status = 100, last_edit = ?, closed_at = ? WHERE gid = ?
+EOSQL
+} elsif($what eq 'status') {
+  my $new = $ARGV[2];
+  die help() unless defined $new;
+
+  dbh()->do(<<EOSQL, {}, $new, $now, $gid);
+  UPDATE task SET status = ?, last_edit = ?, closed_at = NULL WHERE gid = ?
+EOSQL
+} elsif($what eq 'est') {
+  my $new = interpretUnit($ARGV[2]) or die help();
+
+  dbh()->do(<<EOSQL, {}, $new, $now, $gid);
+  UPDATE task SET seconds_estimate = ?, last_edit = ? WHERE gid = ?
+EOSQL
+} elsif($what eq 'title') {
+  my $new = $ARGV[2] or die help();
+
+  dbh()->do(<<EOSQL, {}, $new, $now, $gid);
+  UPDATE task SET title = ?, last_edit = ? WHERE gid = ?
+EOSQL
+} elsif($what eq 'pub') {
+  my $new = $ARGV[2] or die help();
+
+  my %map = (
+    'L' => PUBLICATION_LOCAL(),
+    'P' => PUBLICATION_PRIVATE(),
+    'M' => PUBLICATION_MASKED(),
+    'T' => PUBLICATION_TRANSPARENCY(),
+    'O' => PUBLICATION_OFFER(),
+  );
+  die help() unless(exists $map{$new});
+
+  $new = $map{$new};
+
+  dbh()->do(<<EOSQL, {}, $new, $now, $gid);
+  UPDATE task SET publication = ?, last_edit = ? WHERE gid = ?
+EOSQL
+} elsif($what eq 'util') {
+  my $new = $ARGV[2] or die help();
+
+  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($new* 1000));
+  DELETE FROM task_utility WHERE task = (SELECT id FROM task WHERE gid = ?)
+EOSQL
+  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($new* 1000));
+  INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+
+  dbh()->do(<<EOSQL, {}, $now, $gid);
+  UPDATE task SET last_edit = ? WHERE gid = ?
+EOSQL
+} elsif($what eq 'wait_until') {
+  my $end = str2time($ARGV[2]) or die help();
+  enwaitTask($task, $end);
+} elsif($what eq 'wait') {
+  my $delta = $ARGV[2] or die help();
+  enwaitTask($task, time + interpretUnit($delta));
+} else {
+  die help();
+}
+
+print "edited: $gid\n";
+
+sub help {
+  return <<EOTXT
+./edit <task gid / 'c'> <...>
+  done              - complete task
+  wait <time>       - task impossible for the next <time>
+  wait_until <date> - task impossible until specified <date>
+  est <time>        - set new time estimate
+  title <title>     - set new title
+  pub [L|P|M|T|O]   - set new publication state: Local, Private, Masked, Transparent, Offer
+EOTXT
+}
+
+sub enwaitTask {
+  my ($task, $end) = @_;
+
+  my @likelyhood_time = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid)};
+  SELECT l.distribution, l.task FROM task_likelyhood_time l JOIN task t ON t.id = l.task WHERE t.gid = ?
+EOSQL
+
+  if(not @likelyhood_time) {
+    dbh()->do(<<EOSQL, {}, $gid, "0constant:990");
+    INSERT INTO task_likelyhood_time (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+  }
+
+  dbh()->do(<<EOSQL, {}, $gid, "2mulrange:1970-01-01;" . iso_full_date($end) . ";0");
+  INSERT INTO task_likelyhood_time (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+
+  dbh()->do(<<EOSQL, {}, $now, $gid);
+  UPDATE task SET last_edit = ? WHERE gid = ?
+EOSQL
+}

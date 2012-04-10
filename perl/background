@@ -1,0 +1,8 @@
+#!/bin/zsh
+
+while sleep 600; do
+  echo -n "Starting background run for "; date
+
+  sync-38020
+  import-mail
+done

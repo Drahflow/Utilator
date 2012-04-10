@@ -6,11 +6,15 @@ import java.util.*;
 
 class Util {
 	public static int loadInt(Map<String, Object> map, String key) {
-		return Integer.parseInt(map.get(key).toString());
+		Object o = map.get(key);
+		if(o == null) return 0;
+		return Integer.parseInt(o.toString());
 	}
 
 	public static String loadString(Map<String, Object> map, String key) {
-		return map.get(key).toString();
+		Object o = map.get(key);
+		if(o == null) return "";
+		return o.toString();
 	}
 
 	// Maps [0, max] into [0, infinity], returns mapped v

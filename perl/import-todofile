@@ -28,20 +28,6 @@ foreach my $file (qw(todo ideas)) {
   close FILE;
 }
 
-sub interpretUnit {
-  my ($str) = @_;
-  
-  $str =~ /(?'amount'[0-9.]+)\s*(?'unit'[wdhms])/ or die "bad time spec: $str";
-
-  return $+{'amount'} * {
-      's' => 1,
-      'm' => 60,
-      'h' => 60 * 60,
-      'd' => 60 * 60 * 12,
-      'w' => 60 * 60 * 10 * 7,
-    }->{$+{'unit'}};
-}
-
 foreach my $t (@tasks) {
   if(exists $t->{'args'}) {
     foreach my $arg (split /\s*,\s*/, $t->{'args'}) {
@@ -95,8 +81,11 @@ EOSQL
 
   if(exists $t->{'wait'}) {
     $t->{'wait'} = str2time($t->{'wait'});
+    dbh()->do(<<EOSQL, {}, $id, "0constant:990");
+    INSERT INTO task_likelyhood_time (task, distribution) VALUES (?, ?)
+EOSQL
     dbh()->do(<<EOSQL, {}, $id, "2mulrange:1970-01-01;" . iso_full_date($t->{'wait'}) . ";0");
-    INSERT INTO task_utility (task, distribution) VALUES (?, ?)
+    INSERT INTO task_likelyhood_time (task, distribution) VALUES (?, ?)
 EOSQL
   }
 

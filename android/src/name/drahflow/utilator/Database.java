@@ -111,6 +111,7 @@ public class Database {
 	public String createTask(Map<String, Object> task) {
 		if(task.get("gid") == null) task.put("gid", createGid());
 		if(task.get("status") == null) task.put("status", 0);
+		if(task.get("publication") == null) task.put("publication", 1);
 
 		db.beginTransaction();
 		try {

@@ -4,13 +4,32 @@ use strict;
 use warnings;
 use encoding 'utf-8';
 
-use Global qw(/.*/);
+use Global qw(/./);
+use Query qw(/./);
 use Data::Dumper;
 
-my $best;
+my $task = Query::resolveTask($ARGV[0]) or die help();
 
-my @tasks = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} });
-SELECT * FROM task WHERE status < 100
+print Dumper($task);
+print "Time est: " . reverseInterpretUnit($task->{'seconds_estimate'});
+
+print "\n-- utility --\n";
+print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
+SELECT u.distribution, u.task FROM task_utility u JOIN task t ON t.id = u.task WHERE t.gid = ?
 EOSQL
 
-die Dumper(\@tasks);
+print "\n-- likelyhood time --\n";
+print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
+SELECT l.distribution, l.task FROM task_likelyhood_time l JOIN task t ON t.id = l.task WHERE t.gid = ?
+EOSQL
+
+print "\n-- likelyhood space --\n";
+print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
+SELECT l.distribution, l.task FROM task_likelyhood_space l JOIN task t ON t.id = l.task WHERE t.gid = ?
+EOSQL
+
+sub help {
+  return <<EOTXT
+dump <task>
+EOTXT
+}

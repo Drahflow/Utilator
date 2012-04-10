@@ -1,0 +1,130 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Date::Parse qw(str2time);
+use Date::Format qw(time2str);
+use List::Util qw(min max);
+use Data::Dumper;
+use Secrets;
+
+use Global qw(/./);
+
+my $state = 0;
+my $seen = 1;
+my $toMe = 0;
+my $extraUtility = 0;
+my $subject = undef;
+
+my $unreadCount = 0;
+my $estimatedTime = 300;
+my $estimatedUtility = 0;
+
+my @INBOXEN = (
+  "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/pop.gmx.net/Inbox",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/mail.ips.cs.tu-bs.de/Inbox",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.tu-bs.de/INBOX",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/iserv.hvf-bs.net/INBOX",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig-1.de/INBOX",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig.de/INBOX",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/quuxlogic-1.com/INBOX",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/quuxlogic.com/INBOX",
+);
+
+foreach my $inbox (@INBOXEN) {
+  open INBOX, '<:raw', $inbox or die "cannot open $inbox: $!";
+  while(my $line = <INBOX>) {
+    chomp $line;
+
+    if($line =~ /^X-Mozilla-Status: ...(.)$/) {
+      $seen = $1;
+      $toMe = 0;
+      $state = 1;
+      $extraUtility = 0;
+    }
+
+    if($state == 3 and $line =~ /^\t(.*)$/) {
+      $subject .= $1;
+    } elsif($state == 1 or $state == 3) {
+      $state = 1;
+
+      if($line =~ /^$/) {
+        $state = 2;
+      } elsif($line =~ /^Subject: (.*)$/) {
+        $subject = $1;
+        $state = 3;
+      } elsif($line =~ /^(To|CC): .*drahflow.*/) {
+        $toMe = 1;
+      } elsif($line =~ /^(To|CC): jens\@quuxlogic.com/) {
+        $toMe = 1;
+      } elsif($line =~ /^(To|CC): .*schicke.*/) {
+        $toMe = 1;
+      } elsif($line =~ /^From: ([^<]*)$/) {
+        $extraUtility = Secrets::importMailExtraUtilBySender($1);
+      } elsif($line =~ /^From: .* <(.*)>$/) {
+        $extraUtility = Secrets::importMailExtraUtilBySender($1);
+      }
+    }
+
+    if($state == 2 or $state == 3 and $line =~ /^$/) {
+      if(not $seen) {
+        # print "Subject: $subject\n";
+        ++$unreadCount;
+
+        if($toMe) {
+          $estimatedUtility += 10;
+          $estimatedTime += 60;
+        } else {
+          $estimatedUtility += 5;
+          $estimatedTime += 10;
+        }
+
+        if($extraUtility) {
+          $estimatedUtility += $extraUtility;
+        }
+      }
+
+      $state = 0;
+    }
+  }
+  close INBOX;
+}
+
+print "Unread: " . $unreadCount . "\n";
+print "Estimated utility: " . ($estimatedUtility / 1000.0) . "\n";
+print "Estimated time: " . $estimatedTime . "s\n";
+
+my $author = 'mailto://drahflow@gmx.de';
+my $title = 'Read mails';
+my $publication = PUBLICATION_PRIVATE;
+my $now = iso_full_date(time);
+
+my $gid = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $title)->[0]->{'gid'};
+SELECT gid FROM task WHERE title = ? AND status < 100
+EOSQL
+
+if(defined $gid) {
+  dbh()->do(<<EOSQL, {}, $gid);
+  DELETE FROM task_utility WHERE task = (SELECT id FROM task WHERE gid = ?)
+EOSQL
+  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
+  INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+  dbh()->do(<<EOSQL, {}, $estimatedTime, $now, $gid);
+  UPDATE task SET seconds_estimate = ?, last_edit = ? WHERE gid = ?
+EOSQL
+
+  print "edited: $gid\n";
+} else {
+  $gid = create_gid();
+  dbh()->do(<<EOSQL, {}, $gid, $author, $title, $estimatedTime, 0, 0, $publication, $now);
+  INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+EOSQL
+  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
+  INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+
+  print "created: $gid\n";
+}
