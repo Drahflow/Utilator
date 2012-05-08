@@ -18,6 +18,10 @@ public class Database {
 		db = new DatabaseOpenHelper(ctx).getWritableDatabase();
 	}
 
+	public void close() {
+		db.close();
+	}
+
 	public List<Map<String, Object>> loadAllTasks() {
 		List<Map<String, Object>> r = new ArrayList<Map<String, Object>>();
 
@@ -31,6 +35,7 @@ public class Database {
 			r.add(loadCursorRow(cols, res));
 		}
 
+		res.close();
 		return r;
 	}
 
@@ -47,6 +52,7 @@ public class Database {
 			r.add(loadCursorRow(cols, res));
 		}
 
+		res.close();
 		return r;
 	}
 
@@ -72,9 +78,11 @@ public class Database {
 			Map<String, Object> row = loadCursorRow(cols, res);
 			if(res.moveToNext()) throw new Error("duplicate GID: " + gid);
 
+			res.close();
 			return row;
 		}
 
+		res.close();
 		return null;
 	}
 
@@ -90,6 +98,7 @@ public class Database {
 			r.add(loadCursorRow(cols, res));
 		}
 
+		res.close();
 		return r;
 	}
 
@@ -105,6 +114,7 @@ public class Database {
 			r.add(loadCursorRow(cols, res));
 		}
 
+		res.close();
 		return r;
 	}
 
@@ -305,5 +315,53 @@ public class Database {
 		}
 
 		return res.toString();
+	}
+
+	public String getBestTask(Context ctx, Date when) {
+		Collection<Map<String, Object>> tasks = loadOpenTasks();
+
+		// Log.i("Utilator", "Tasks: " + tasks);
+
+		Map<String, Object> bestTask = null;
+		float bestImportance = 0;
+
+		for(Map<String, Object> task: tasks) {
+			float importance = Distribution.calculateImportance(ctx, this, when, task);
+			// Log.i("Utilator", "Task: " + loadString(task, "title"));
+			// Log.i("Utilator", "  importance: " + importance);
+
+			if(importance > bestImportance) {
+				bestTask = task;
+				bestImportance = importance;
+			}
+		}
+
+		return bestTask == null? null: loadString(bestTask, "gid");
+	}
+
+	public String getTaskSeenLast() {
+		Cursor res = db.rawQuery("SELECT gid FROM task_seen_last", new String[0]);
+		String[] cols = res.getColumnNames();
+
+		while(res.moveToNext()) {
+			Map<String, Object> row = loadCursorRow(cols, res);
+			if(res.moveToNext()) throw new Error("multiple rows in task_seen_last");
+
+			res.close();
+			return (String)row.get("gid");
+		}
+
+		res.close();
+		return null;
+	}
+
+	public void setTaskSeenLast(String gid) {
+		db.beginTransaction();
+		try {
+			db.execSQL("UPDATE task_seen_last SET gid = ?", new String[] { gid });
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
 	}
 }

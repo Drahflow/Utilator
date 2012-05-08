@@ -59,10 +59,10 @@ EOSQL
 } elsif($what eq 'util') {
   my $new = $ARGV[2] or die help();
 
-  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($new* 1000));
+  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($new * 1000));
   DELETE FROM task_utility WHERE task = (SELECT id FROM task WHERE gid = ?)
 EOSQL
-  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($new* 1000));
+  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($new * 1000));
   INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
 EOSQL
 
@@ -89,6 +89,7 @@ sub help {
   wait_until <date> - task impossible until specified <date>
   est <time>        - set new time estimate
   title <title>     - set new title
+  util <utility>    - set new (constant) utility
   pub [L|P|M|T|O]   - set new publication state: Local, Private, Masked, Transparent, Offer
 EOTXT
 }

@@ -31,6 +31,15 @@ class DatabaseOpenHelper extends SQLiteOpenHelper {
 				"");
 
 		db.execSQL("" +
+				"CREATE TABLE task_seen_last (" +
+				"  gid BLOB" +
+				");" +
+				"");
+		db.execSQL("" +
+				"INSERT INTO task_seen_last (gid) VALUES (NULL);" +
+				"");
+
+		db.execSQL("" +
 				"CREATE TABLE expectation (" +
 				"  id INTEGER PRIMARY KEY," +
 				"  gid BLOB NOT NULL," +

@@ -2,6 +2,7 @@ package name.drahflow.utilator;
 
 import java.util.*;
 import android.util.*;
+import android.content.*;
 import android.widget.*;
 
 import static name.drahflow.utilator.Util.*;
@@ -77,7 +78,7 @@ public class Distribution {
 		return r;
 	}
 
-	public static float calculateImportance(Utilator ctx, Date time, Map<String, Object> task) {
+	public static float calculateImportance(Context ctx, Database db, Date time, Map<String, Object> task) {
 		float timeEstimate;
 
 		try {
@@ -87,8 +88,8 @@ public class Distribution {
 				timeEstimate = (float)loadInt(task, "seconds_estimate");
 			}
 
-			float utility = calculateTimeDistribution(ctx, time, 0, ctx.db.loadTaskUtilities(loadString(task, "gid"))) / 1000.0f;
-			float likelyhoodTime = calculateTimeDistribution(ctx, time, 990, ctx.db.loadTaskLikelyhoodTime(loadString(task, "gid"))) / 1000.0f;
+			float utility = calculateTimeDistribution(ctx, time, 0, db.loadTaskUtilities(loadString(task, "gid"))) / 1000.0f;
+			float likelyhoodTime = calculateTimeDistribution(ctx, time, 990, db.loadTaskLikelyhoodTime(loadString(task, "gid"))) / 1000.0f;
 
 			// Log.i("Utilator", "Task: " + loadString(task, "title"));
 			// Log.i("Utilator", "  timeEstimate: " + timeEstimate);
@@ -105,7 +106,7 @@ public class Distribution {
 		}
 	}
 
-	public static float calculateTimeDistribution(Utilator ctx, Date time, int d, List<Map<String, Object>> distribution) {
+	public static float calculateTimeDistribution(Context ctx, Date time, int d, List<Map<String, Object>> distribution) {
 		if(distribution.isEmpty()) return d;
 
 		final String isoTime = isoFullDate(time);

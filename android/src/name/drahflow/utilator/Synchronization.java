@@ -20,6 +20,9 @@ public class Synchronization {
 
 	public void perform() {
 		try {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			serializeTasks(out);
+
 			URL url = new URL("https://38020.vs.webtropia.com/utilator/server");
 
 			HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
@@ -27,8 +30,7 @@ public class Synchronization {
 				urlConnection.setDoOutput(true);
 				urlConnection.setChunkedStreamingMode(0);
 
-				OutputStream out = new BufferedOutputStream(urlConnection.getOutputStream());
-				serializeTasks(out);
+				urlConnection.getOutputStream().write(out.toByteArray());
 
 				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
 				deserializeTasks(in);
@@ -38,10 +40,10 @@ public class Synchronization {
 		} catch(MalformedURLException mue) {
 			throw new Error("Hard-coded URL was invalid", mue);
 		} catch(JSONException jsone) {
-			Toast toast = Toast.makeText(ctx, "Sync failed: " + jsone.toString(), Toast.LENGTH_SHORT);
+			Toast toast = Toast.makeText(ctx, "Sync failed: " + jsone.toString(), Toast.LENGTH_LONG);
 			toast.show();
 		} catch(IOException ioe) {
-			Toast toast = Toast.makeText(ctx, "Sync failed: " + ioe.toString(), Toast.LENGTH_SHORT);
+			Toast toast = Toast.makeText(ctx, "Sync failed: " + ioe.toString(), Toast.LENGTH_LONG);
 			toast.show();
 		}
 	}
@@ -99,12 +101,18 @@ public class Synchronization {
 
 		reader.close();
 
+		if(json.length() == 0) {
+			Toast toast = Toast.makeText(ctx, "Sync failed: empty result", Toast.LENGTH_LONG);
+			toast.show();
+			return;
+		}
+
 		//Log.i("Utilator", "JSON received: " + json);
 
 		JSONObject inRoot = (JSONObject)new JSONTokener(json.toString()).nextValue();
 		String error = (String)inRoot.opt("error");
 		if(error != null) {
-			Toast toast = Toast.makeText(ctx, "Sync failed: " + error, Toast.LENGTH_SHORT);
+			Toast toast = Toast.makeText(ctx, "Sync failed: " + error, Toast.LENGTH_LONG);
 			toast.show();
 			return;
 		}
@@ -124,6 +132,9 @@ public class Synchronization {
 				writeTask(inTask);
 			}
 		}
+
+		Toast toast = Toast.makeText(ctx, "Sync succeeded: " + inTasks.length() + " tasks received", Toast.LENGTH_LONG);
+		toast.show();
 	}
 
 	private void writeTask(JSONObject inTask) throws JSONException {

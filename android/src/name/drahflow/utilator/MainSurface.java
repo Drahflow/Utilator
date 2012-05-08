@@ -61,7 +61,7 @@ class MainSurface extends WidgetView {
 			y = drawWrapped(c, line, 10, 320, y, PRIMARY_COLOR) + 20;
 		}
 
-		float importance = Distribution.calculateImportance(ctx, new Date(), currentTask);
+		float importance = Distribution.calculateImportance(ctx, ctx.db, new Date(), currentTask);
 		y = drawWrapped(c, importance * 3600 + " u / h", 10, 320, y, PRIMARY_COLOR) + 20;
 
 		c.drawLine(0, 198, getWidth() * (loadInt(currentTask, "seconds_taken") + timeRunning) /

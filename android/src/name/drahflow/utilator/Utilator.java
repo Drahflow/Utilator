@@ -22,6 +22,7 @@ public class Utilator extends Activity
 		super.onCreate(savedInstanceState);
 
 		TrustManager.install();
+		Background.start(this);
 
 		db = new Database(this);
 
@@ -30,32 +31,20 @@ public class Utilator extends Activity
 		setContentView(main);
 	}
 
+	@Override public void onDestroy() {
+		db.close();
+
+		super.onDestroy();
+	}
+
 	private String getBestTask(Database db) {
-		Collection<Map<String, Object>> tasks = db.loadOpenTasks();
-
-		// Log.i("Utilator", "Tasks: " + tasks);
-
-		Map<String, Object> bestTask = null;
-		float bestImportance = 0;
-
-		Date now = new Date();
-
-		for(Map<String, Object> task: tasks) {
-			float importance = Distribution.calculateImportance(this, now, task);
-			// Log.i("Utilator", "Task: " + loadString(task, "title"));
-			// Log.i("Utilator", "  importance: " + importance);
-
-			if(importance > bestImportance) {
-				bestTask = task;
-				bestImportance = importance;
-			}
-		}
-
-		return bestTask == null? null: loadString(bestTask, "gid");
+		return db.getBestTask(this, new Date());
 	}
 
 	public void switchToBestTask() {
-		main.setTask(getBestTask(db));
+		String best = getBestTask(db);
+		db.setTaskSeenLast(best);
+		main.setTask(best);
 	}
 
 	@Override public void onBackPressed() {
@@ -85,20 +74,25 @@ public class Utilator extends Activity
 											Log.i("Utilator", "Utilator, searched for " + regex);
 
 											List<Map<String, Object>> allTasks = db.loadAllTasks();
-											Set<String> matching = new HashSet<String>();
+											final List<String> matching = new ArrayList<String>();
 
 											for(Map<String, Object> task: allTasks) {
 												if(loadString(task, "title").matches(".*" + regex + ".*") ||
 													loadString(task, "description").matches(".*" + regex + ".*")) {
-													matching.add(loadString(task, "gid"));
+													matching.add(loadString(task, "gid") + ":" + loadString(task, "title"));
 												}
 											}
 
 											if(matching.size() > 1) {
-												Toast toast = Toast.makeText(Utilator.this, "multiple tasks match", Toast.LENGTH_SHORT);
-												toast.show();
-
-												main.setTask(matching.iterator().next());
+												AlertDialog.Builder builder = new AlertDialog.Builder(Utilator.this);
+												builder.setTitle("multiple matches");
+												builder.setItems(matching.toArray(new String[0]), new DialogInterface.OnClickListener(){
+													public void onClick(DialogInterface dialogInterface, int item) {
+														main.setTask(matching.get(item).substring(0, matching.get(item).indexOf(':')));
+														return;
+													}
+												});
+												builder.create().show();
 											} else if(matching.isEmpty()) {
 												Toast toast = Toast.makeText(Utilator.this, "no tasks match", Toast.LENGTH_SHORT);
 												toast.show();

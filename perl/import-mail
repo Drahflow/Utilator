@@ -29,8 +29,8 @@ my @INBOXEN = (
   "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/iserv.hvf-bs.net/INBOX",
   "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig-1.de/INBOX",
   "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig.de/INBOX",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/quuxlogic-1.com/INBOX",
   "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/quuxlogic.com/INBOX",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.quuxlogic.com/INBOX",
 );
 
 foreach my $inbox (@INBOXEN) {
