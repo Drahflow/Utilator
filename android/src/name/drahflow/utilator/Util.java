@@ -17,6 +17,15 @@ class Util {
 		return o.toString();
 	}
 
+	public static List<String> loadStringColumn(List<Map<String, Object>> data, String key) {
+		List<String> r = new ArrayList<String>();
+		for(Map<String, Object> row: data) {
+			r.add(loadString(row, key));
+		}
+
+		return r;
+	}
+
 	// Maps [0, max] into [0, infinity], returns mapped v
 	public static long exponentialMap(int v, int max) {
 		long res = (long)Math.exp(20 * (float)v / max);

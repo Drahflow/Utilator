@@ -28,7 +28,7 @@ public class Database {
 		Cursor res = db.rawQuery(
 				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task",
 				new String[] { });
-		String[] cols = res.getColumnNames();
+		String[] cols = lowerCaseArray(res.getColumnNames());
 
 		// optimize to only store strings once
 		while(res.moveToNext()) {
@@ -39,13 +39,13 @@ public class Database {
 		return r;
 	}
 
-	public List<Map<String, Object>> loadOpenTasks() {
+	private List<Map<String, Object>> loadOpenTasks() {
 		List<Map<String, Object>> r = new ArrayList<Map<String, Object>>();
 
 		Cursor res = db.rawQuery(
-				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task WHERE status < 100",
+				"SELECT gid, seconds_estimate, seconds_taken, status FROM task WHERE status < 100",
 				new String[] { });
-		String[] cols = res.getColumnNames();
+		String[] cols = lowerCaseArray(res.getColumnNames());
 
 		// optimize to only store strings once
 		while(res.moveToNext()) {
@@ -54,13 +54,67 @@ public class Database {
 
 		res.close();
 		return r;
+	}
+
+	public Map<String, List<String>> loadManyTaskUtilities(String where) {
+		Map<String, List<String>> r = new HashMap<String, List<String>>();
+
+		Cursor res = db.rawQuery(
+				"SELECT t.gid, u.distribution FROM task t JOIN task_utility u ON t.id = u.task " + where,
+				new String[] { });
+		String[] cols = lowerCaseArray(res.getColumnNames());
+
+		// optimize to only store strings once
+		while(res.moveToNext()) {
+			final String gid = res.getString(0);
+			List<String> distribution = r.get(gid);
+			if(distribution == null) {
+				r.put(gid, distribution = new ArrayList<String>());
+			}
+
+			distribution.add(res.getString(1));
+		}
+
+		res.close();
+		return r;
+	}
+
+	public Map<String, List<String>> loadManyTaskLikelyhoodTime(String where) {
+		Map<String, List<String>> r = new HashMap<String, List<String>>();
+
+		Cursor res = db.rawQuery(
+				"SELECT t.gid, l.distribution FROM task t JOIN task_likelyhood_time l ON t.id = l.task " + where,
+				new String[] { });
+		String[] cols = lowerCaseArray(res.getColumnNames());
+
+		// optimize to only store strings once
+		while(res.moveToNext()) {
+			final String gid = res.getString(0);
+			List<String> distribution = r.get(gid);
+			if(distribution == null) {
+				r.put(gid, distribution = new ArrayList<String>());
+			}
+
+			distribution.add(res.getString(1));
+		}
+
+		res.close();
+		return r;
+	}
+
+	private String[] lowerCaseArray(String[] a) {
+		for(int i = 0; i < a.length; ++i) {
+			a[i] = a[i].toLowerCase();
+		}
+
+		return a;
 	}
 
 	private Map<String, Object> loadCursorRow(String[] cols, Cursor res) {
 			Map<String, Object> row = new HashMap<String, Object>();
 
 			for(int i = 0; i < cols.length; ++i) {
-				row.put(cols[i].toLowerCase(), res.getString(i));
+				row.put(cols[i], res.getString(i));
 			}
 
 			return row;
@@ -72,7 +126,7 @@ public class Database {
 		Cursor res = db.rawQuery(
 				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task WHERE gid = ?",
 				new String[] { gid });
-		String[] cols = res.getColumnNames();
+		String[] cols = lowerCaseArray(res.getColumnNames());
 
 		while(res.moveToNext()) {
 			Map<String, Object> row = loadCursorRow(cols, res);
@@ -92,7 +146,7 @@ public class Database {
 		Cursor res = db.rawQuery(
 				"SELECT distribution FROM task_utility WHERE task = (SELECT id FROM task WHERE gid = ?)",
 				new String[] { gid });
-		String[] cols = res.getColumnNames();
+		String[] cols = lowerCaseArray(res.getColumnNames());
 
 		while(res.moveToNext()) {
 			r.add(loadCursorRow(cols, res));
@@ -108,7 +162,7 @@ public class Database {
 		Cursor res = db.rawQuery(
 				"SELECT id, distribution FROM task_likelyhood_time WHERE task = (SELECT id FROM task WHERE gid = ?)",
 				new String[] { gid });
-		String[] cols = res.getColumnNames();
+		String[] cols = lowerCaseArray(res.getColumnNames());
 
 		while(res.moveToNext()) {
 			r.add(loadCursorRow(cols, res));
@@ -319,6 +373,8 @@ public class Database {
 
 	public String getBestTask(Context ctx, Date when) {
 		Collection<Map<String, Object>> tasks = loadOpenTasks();
+		Map<String, List<String>> taskUtilities = loadManyTaskUtilities("WHERE t.status < 100");
+		Map<String, List<String>> taskLikelyhoodTime = loadManyTaskLikelyhoodTime("WHERE t.status < 100");
 
 		// Log.i("Utilator", "Tasks: " + tasks);
 
@@ -326,7 +382,7 @@ public class Database {
 		float bestImportance = 0;
 
 		for(Map<String, Object> task: tasks) {
-			float importance = Distribution.calculateImportance(ctx, this, when, task);
+			float importance = Distribution.calculateImportance(ctx, this, when, task, taskUtilities, taskLikelyhoodTime);
 			// Log.i("Utilator", "Task: " + loadString(task, "title"));
 			// Log.i("Utilator", "  importance: " + importance);
 
@@ -341,7 +397,7 @@ public class Database {
 
 	public String getTaskSeenLast() {
 		Cursor res = db.rawQuery("SELECT gid FROM task_seen_last", new String[0]);
-		String[] cols = res.getColumnNames();
+		String[] cols = lowerCaseArray(res.getColumnNames());
 
 		while(res.moveToNext()) {
 			Map<String, Object> row = loadCursorRow(cols, res);

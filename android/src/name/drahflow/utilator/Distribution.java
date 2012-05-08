@@ -82,14 +82,16 @@ public class Distribution {
 		float timeEstimate;
 
 		try {
-			if(loadInt(task, "status") > 0 && loadInt(task, "time_taken") > 0) {
+			if(loadInt(task, "status") > 0 && loadInt(task, "seconds_taken") > 0) {
 				timeEstimate = (float)loadInt(task, "seconds_taken") * loadInt(task, "status") / 100;
 			} else {
 				timeEstimate = (float)loadInt(task, "seconds_estimate");
 			}
 
-			float utility = calculateTimeDistribution(ctx, time, 0, db.loadTaskUtilities(loadString(task, "gid"))) / 1000.0f;
-			float likelyhoodTime = calculateTimeDistribution(ctx, time, 990, db.loadTaskLikelyhoodTime(loadString(task, "gid"))) / 1000.0f;
+			float utility = calculateTimeDistribution(ctx, time, 0,
+					loadStringColumn(db.loadTaskUtilities(loadString(task, "gid")), "distribution")) / 1000.0f;
+			float likelyhoodTime = calculateTimeDistribution(ctx, time, 990,
+					loadStringColumn(db.loadTaskLikelyhoodTime(loadString(task, "gid")), "distribution")) / 1000.0f;
 
 			// Log.i("Utilator", "Task: " + loadString(task, "title"));
 			// Log.i("Utilator", "  timeEstimate: " + timeEstimate);
@@ -106,28 +108,61 @@ public class Distribution {
 		}
 	}
 
-	public static float calculateTimeDistribution(Context ctx, Date time, int d, List<Map<String, Object>> distribution) {
-		if(distribution.isEmpty()) return d;
+	public static float calculateImportance(Context ctx, Database db, Date time, Map<String, Object> task,
+			Map<String, List<String>> taskUtilities, Map<String, List<String>> taskLikelyhoodTime) {
+		float timeEstimate;
 
-		final String isoTime = isoFullDate(time);
-		int value = 0;
+		try {
+			if(loadInt(task, "status") > 0 && loadInt(task, "seconds_taken") > 0) {
+				timeEstimate = (float)loadInt(task, "seconds_taken") * loadInt(task, "status") / 100;
+			} else {
+				timeEstimate = (float)loadInt(task, "seconds_estimate");
+			}
 
-		Set<String> entries = new TreeSet<String>();
-		for(Map<String, Object> entry: distribution) {
-			entries.add(loadString(entry, "distribution"));
+			float utility = calculateTimeDistribution(ctx, time, 0, taskUtilities.get(loadString(task, "gid"))) / 1000.0f;
+			float likelyhoodTime = calculateTimeDistribution(ctx, time, 990, taskLikelyhoodTime.get(loadString(task, "gid"))) / 1000.0f;
+
+			// Log.i("Utilator", "Task: " + loadString(task, "title"));
+			// Log.i("Utilator", "  timeEstimate: " + timeEstimate);
+			// Log.i("Utilator", "  utility: " + utility);
+			// Log.i("Utilator", "  likelyhoodTime: " + likelyhoodTime);
+
+			return utility * likelyhoodTime / timeEstimate;
+		} catch(Exception e) {
+			e.printStackTrace();
+			Toast toast = Toast.makeText(ctx, "Error in database: " + e.toString(), Toast.LENGTH_SHORT);
+			toast.show();
+
+			return 999999;
+		}
+	}
+
+	private static Date lastIsoTimeDate = null;
+	private static String lastIsoTime = null;
+
+	public static float calculateTimeDistribution(Context ctx, Date time, int d, List<String> distribution) {
+		if(distribution == null || distribution.isEmpty()) return d;
+
+		if(time != lastIsoTimeDate) {
+			lastIsoTime = isoFullDate(time);
+			lastIsoTimeDate = time;
 		}
 
-		for(String entry: entries) {
-			String data = entry.substring(1);
+		int value = 0;
 
-			if(data.matches("^constant:.*")) {
-				value += Integer.parseInt(data.split(":", 2)[1]);
-			} else if(data.matches("^mulrange:.*")) {
-				String parts[] = data.split(":", 2)[1].split(";");
-				if(parts[0].compareTo(isoTime) <= 0 && parts[1].compareTo(isoTime) > 0) {
+		Collections.sort(distribution);
+
+		for(String entry: distribution) {
+			String[] data = entry.substring(1).split(":", 2);
+
+			if(data[0].equals("constant")) {
+				value += Integer.parseInt(data[1]);
+			} else if(data[0].equals("mulrange")) {
+				String parts[] = data[1].split(";");
+				if(parts[0].compareTo(lastIsoTime) <= 0 && parts[1].compareTo(lastIsoTime) > 0) {
 					value = value * Integer.parseInt(parts[2]) / 1000;
 				}
-			} else if(data.matches("^mulhours:.*")) {
+			} else if(data[0].equals("mulhours")) {
 				Mulhours e = parseMulhours(entry);
 				GregorianCalendar cal = new GregorianCalendar();
 				cal.setTime(time);
@@ -147,7 +182,7 @@ public class Distribution {
 				}
 
 				value = value * (matched? e.value: 0) / 1000;
-			} else if(data.matches("^muldays:.*")) {
+			} else if(data[0].equals("muldays")) {
 				Muldays e = parseMuldays(entry);
 				final String currentDay = isoDate(time);
 				Log.i("Utilator", "currentDay: " + currentDay);

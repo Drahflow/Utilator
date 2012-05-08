@@ -59,6 +59,8 @@ public class Synchronization {
 		resRoot.put("task", resTasks);
 
 		List<Map<String, Object>> tasks = ctx.db.loadAllTasks();
+		Map<String, List<String>> taskUtilities = ctx.db.loadManyTaskUtilities("");
+		Map<String, List<String>> taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime("");
 
 		for(Map<String, Object> task: tasks) {
 			JSONObject resTask = new JSONObject();
@@ -68,20 +70,14 @@ public class Synchronization {
 				resTask.put(entry.getKey(), entry.getValue());
 			}
 
-			List<Map<String, Object>> utilities = ctx.db.loadTaskUtilities(loadString(task, "gid"));
-			JSONArray resUtils = new JSONArray();
-			for(Map<String, Object> i: utilities) {
-				resUtils.put(loadString(i, "distribution"));
-			}
-			resTask.put("utility", resUtils);
+			final String gid = loadString(task, "gid");
 
-			List<Map<String, Object>> likelyhoodTimes = ctx.db.loadTaskLikelyhoodTime(loadString(task, "gid"));
-			JSONArray resLikelyhoodTimes = new JSONArray();
-			for(Map<String, Object> i: likelyhoodTimes) {
-				resLikelyhoodTimes.put(loadString(i, "distribution"));
-			}
+			resTask.put("utility",
+					taskUtilities.get(gid) == null? new JSONArray(): new JSONArray(taskUtilities.get(gid)));
 
-			resTask.put("likelyhood_time", resLikelyhoodTimes);
+			resTask.put("likelyhood_time",
+					taskLikelyhoodTime.get(gid) == null? new JSONArray(): new JSONArray(taskLikelyhoodTime.get(gid)));
+
 			resTasks.put(resTask);
 		}
 
