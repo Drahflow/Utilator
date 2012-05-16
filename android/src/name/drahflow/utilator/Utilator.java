@@ -73,13 +73,13 @@ public class Utilator extends Activity
 											String regex = input.getText().toString(); 
 											Log.i("Utilator", "Utilator, searched for " + regex);
 
-											List<Map<String, Object>> allTasks = db.loadAllTasks();
+											List<Task> allTasks = db.loadAllTasks();
 											final List<String> matching = new ArrayList<String>();
 
-											for(Map<String, Object> task: allTasks) {
-												if(loadString(task, "title").matches(".*" + regex + ".*") ||
-													loadString(task, "description").matches(".*" + regex + ".*")) {
-													matching.add(loadString(task, "gid") + ":" + loadString(task, "title"));
+											for(Task task: allTasks) {
+												if(task.title.matches(".*" + regex + ".*") ||
+													task.description.matches(".*" + regex + ".*")) {
+													matching.add(task.gid + ":" + task.title);
 												}
 											}
 

@@ -8,12 +8,18 @@ class Util {
 	public static int loadInt(Map<String, Object> map, String key) {
 		Object o = map.get(key);
 		if(o == null) return 0;
-		return Integer.parseInt(o.toString());
+		if(o instanceof Integer) return (Integer)o;
+
+		Integer i = Integer.parseInt(o.toString());
+		map.put(key, i);
+		return i;
 	}
 
 	public static String loadString(Map<String, Object> map, String key) {
 		Object o = map.get(key);
 		if(o == null) return "";
+		if(o instanceof String) return (String)o;
+
 		return o.toString();
 	}
 

@@ -58,25 +58,37 @@ public class Synchronization {
 		JSONArray resTasks = new JSONArray();
 		resRoot.put("task", resTasks);
 
-		List<Map<String, Object>> tasks = ctx.db.loadAllTasks();
-		Map<String, List<String>> taskUtilities = ctx.db.loadManyTaskUtilities("");
-		Map<String, List<String>> taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime("");
+		List<Task> tasks = ctx.db.loadAllTasks();
+		Map<String, Object> taskUtilities = ctx.db.loadManyTaskUtilities("");
+		Map<String, Object> taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime("");
+		Map<String, List<String>> taskExternal = ctx.db.loadManyTaskExternal("");
 
-		for(Map<String, Object> task: tasks) {
+		for(Task task: tasks) {
+			// FIXME: filter publication state
+
 			JSONObject resTask = new JSONObject();
 
-			// FIXME: filter publication state
-			for(Map.Entry<String, Object> entry: task.entrySet()) {
-				resTask.put(entry.getKey(), entry.getValue());
-			}
+			resTask.put("gid", task.gid);
+			resTask.put("title", task.gid);
+			resTask.put("description", task.gid);
+			resTask.put("author", task.gid);
+			resTask.put("seconds_estimate", task.gid);
+			resTask.put("seconds_taken", task.gid);
+			resTask.put("status", task.gid);
+			resTask.put("closed_at", task.gid);
+			resTask.put("publication", task.gid);
+			resTask.put("last_edit", task.gid);
 
-			final String gid = loadString(task, "gid");
+			final String gid = task.gid;
 
 			resTask.put("utility",
-					taskUtilities.get(gid) == null? new JSONArray(): new JSONArray(taskUtilities.get(gid)));
+					taskUtilities.get(gid) == null? new JSONArray(): new JSONArray((List<String>)taskUtilities.get(gid)));
 
 			resTask.put("likelyhood_time",
-					taskLikelyhoodTime.get(gid) == null? new JSONArray(): new JSONArray(taskLikelyhoodTime.get(gid)));
+					taskLikelyhoodTime.get(gid) == null? new JSONArray(): new JSONArray((List<String>)taskLikelyhoodTime.get(gid)));
+
+			resTask.put("external",
+					taskExternal.get(gid) == null? new JSONArray(): new JSONArray(taskExternal.get(gid)));
 
 			resTasks.put(resTask);
 		}
@@ -152,6 +164,12 @@ public class Synchronization {
 		JSONArray inLikelyhoodTime = inTask.getJSONArray("likelyhood_time");
 		for(int i = 0; i < inLikelyhoodTime.length(); ++i) {
 			ctx.db.addLikelyhoodTime(gid, inLikelyhoodTime.getString(i));
+		}
+
+		ctx.db.deleteExternal(gid);
+		JSONArray inExternal = inTask.getJSONArray("external");
+		for(int i = 0; i < inExternal.length(); ++i) {
+			ctx.db.addExternal(gid, inExternal.getString(i));
 		}
 	}
 }

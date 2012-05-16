@@ -22,49 +22,64 @@ public class Database {
 		db.close();
 	}
 
-	public List<Map<String, Object>> loadAllTasks() {
-		List<Map<String, Object>> r = new ArrayList<Map<String, Object>>();
+	public List<Task> loadAllTasks() {
+		List<Task> r = new ArrayList<Task>();
 
 		Cursor res = db.rawQuery(
 				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task",
 				new String[] { });
-		String[] cols = lowerCaseArray(res.getColumnNames());
 
-		// optimize to only store strings once
 		while(res.moveToNext()) {
-			r.add(loadCursorRow(cols, res));
+			Task t = new Task();
+
+			t.gid = res.getString(0);
+			t.title = res.getString(1);
+			t.description = res.getString(2);
+			t.author = res.getString(3);
+			t.seconds_estimate = res.getInt(4);
+			t.seconds_taken = res.getInt(5);
+			t.status = res.getInt(6);
+			t.closed_at = res.getString(7);
+			t.publication = res.getInt(8);
+			t.last_edit = res.getString(9);
+
+			r.add(t);
 		}
 
 		res.close();
 		return r;
 	}
 
-	private List<Map<String, Object>> loadOpenTasks() {
-		List<Map<String, Object>> r = new ArrayList<Map<String, Object>>();
+	private List<Task> loadOpenTasks() {
+		List<Task> r = new ArrayList<Task>();
 
 		Cursor res = db.rawQuery(
 				"SELECT gid, seconds_estimate, seconds_taken, status FROM task WHERE status < 100",
 				new String[] { });
 		String[] cols = lowerCaseArray(res.getColumnNames());
 
-		// optimize to only store strings once
 		while(res.moveToNext()) {
-			r.add(loadCursorRow(cols, res));
+			Task t = new Task();
+
+			t.gid = res.getString(0);
+			t.seconds_estimate = res.getInt(1);
+			t.seconds_taken = res.getInt(2);
+			t.status = res.getInt(3);
+
+			r.add(t);
 		}
 
 		res.close();
 		return r;
 	}
 
-	public Map<String, List<String>> loadManyTaskUtilities(String where) {
+	public Map<String, Object> loadManyTaskUtilities(String where) {
 		Map<String, List<String>> r = new HashMap<String, List<String>>();
 
 		Cursor res = db.rawQuery(
 				"SELECT t.gid, u.distribution FROM task t JOIN task_utility u ON t.id = u.task " + where,
 				new String[] { });
-		String[] cols = lowerCaseArray(res.getColumnNames());
 
-		// optimize to only store strings once
 		while(res.moveToNext()) {
 			final String gid = res.getString(0);
 			List<String> distribution = r.get(gid);
@@ -76,18 +91,16 @@ public class Database {
 		}
 
 		res.close();
-		return r;
+		return (Map<String, Object>)(Object)r;
 	}
 
-	public Map<String, List<String>> loadManyTaskLikelyhoodTime(String where) {
+	public Map<String, Object> loadManyTaskLikelyhoodTime(String where) {
 		Map<String, List<String>> r = new HashMap<String, List<String>>();
 
 		Cursor res = db.rawQuery(
 				"SELECT t.gid, l.distribution FROM task t JOIN task_likelyhood_time l ON t.id = l.task " + where,
 				new String[] { });
-		String[] cols = lowerCaseArray(res.getColumnNames());
 
-		// optimize to only store strings once
 		while(res.moveToNext()) {
 			final String gid = res.getString(0);
 			List<String> distribution = r.get(gid);
@@ -96,6 +109,27 @@ public class Database {
 			}
 
 			distribution.add(res.getString(1));
+		}
+
+		res.close();
+		return (Map<String, Object>)(Object)r;
+	}
+
+	public Map<String, List<String>> loadManyTaskExternal(String where) {
+		Map<String, List<String>> r = new HashMap<String, List<String>>();
+
+		Cursor res = db.rawQuery(
+				"SELECT t.gid, e.external FROM task t JOIN task_external e ON t.id = e.task " + where,
+				new String[] { });
+
+		while(res.moveToNext()) {
+			final String gid = res.getString(0);
+			List<String> external = r.get(gid);
+			if(external == null) {
+				r.put(gid, external = new ArrayList<String>());
+			}
+
+			external.add(res.getString(1));
 		}
 
 		res.close();
@@ -334,6 +368,28 @@ public class Database {
 		}
 	}
 
+	public void addExternal(String gid, String external) {
+		db.beginTransaction();
+		try {
+			db.execSQL("INSERT INTO task_external (task, external) VALUES ((SELECT id FROM task WHERE gid = ?), ?)",
+					new Object[] { gid, external });
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
+	}
+
+	public void deleteExternal(String gid) {
+		db.beginTransaction();
+		try {
+			db.execSQL("DELETE FROM task_external WHERE task = (SELECT id FROM task WHERE gid = ?)", 
+					new Object[] { gid });
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
+	}
+
 	public void updateLikelyhoodTime(String id, String distribution) {
 		db.beginTransaction();
 		try {
@@ -372,17 +428,20 @@ public class Database {
 	}
 
 	public String getBestTask(Context ctx, Date when) {
-		Collection<Map<String, Object>> tasks = loadOpenTasks();
-		Map<String, List<String>> taskUtilities = loadManyTaskUtilities("WHERE t.status < 100");
-		Map<String, List<String>> taskLikelyhoodTime = loadManyTaskLikelyhoodTime("WHERE t.status < 100");
+		List<Task> tasks = loadOpenTasks();
+		Map<String, Object> taskUtilities = loadManyTaskUtilities("WHERE t.status < 100");
+		Map<String, Object> taskLikelyhoodTime = loadManyTaskLikelyhoodTime("WHERE t.status < 100");
 
 		// Log.i("Utilator", "Tasks: " + tasks);
 
-		Map<String, Object> bestTask = null;
+		Task bestTask = null;
 		float bestImportance = 0;
 
-		for(Map<String, Object> task: tasks) {
-			float importance = Distribution.calculateImportance(ctx, this, when, task, taskUtilities, taskLikelyhoodTime);
+		for(Task task: tasks) {
+			task.task_utility = taskUtilities.get(task.gid);
+			task.task_likelyhood_time = taskLikelyhoodTime.get(task.gid);
+
+			float importance = Distribution.calculateImportance(ctx, this, when, task);
 			// Log.i("Utilator", "Task: " + loadString(task, "title"));
 			// Log.i("Utilator", "  importance: " + importance);
 
@@ -392,7 +451,7 @@ public class Database {
 			}
 		}
 
-		return bestTask == null? null: loadString(bestTask, "gid");
+		return bestTask == null? null: bestTask.gid;
 	}
 
 	public String getTaskSeenLast() {

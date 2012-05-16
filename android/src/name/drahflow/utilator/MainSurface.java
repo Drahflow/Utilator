@@ -95,12 +95,14 @@ class MainSurface extends WidgetView {
 		widgets.add(new Button() {
 			{
 				activateZone = new Rect(0, 220, getWidth() / 3, 280);
-				title = "start";
+				title = "stuff";
 				actions = new Rect[] {
-					new Rect(0, 0, getWidth() / 3, 180)
+					new Rect(0, 0, getWidth() / 3, 180),
+					new Rect(getWidth() / 3, 0, getWidth() * 2 / 3, 180)
 				};
 				actionNames = new String[] {
-					"task"
+					"timer",
+					"simul"
 				};
 			}
 
@@ -123,6 +125,13 @@ class MainSurface extends WidgetView {
 								});
 							}
 						}, 0, 1000);
+						break;
+					case 1:
+						Log.i("Utilator", "MainSurface, switching to simulation");
+
+						SimulationSurface simulation = new SimulationSurface(ctx);
+						ctx.setContentView(simulation);
+						break;
 				}
 			}
 		});
