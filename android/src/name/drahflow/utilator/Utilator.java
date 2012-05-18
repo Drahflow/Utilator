@@ -126,4 +126,9 @@ public class Utilator extends Activity
 		optionAction.get(item).run();
 		return true;
 	}
+
+	public void switchToTask(String gid) {
+		main.setTask(gid);
+		setContentView(main);
+	}
 }

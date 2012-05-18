@@ -129,7 +129,7 @@ class MainSurface extends WidgetView {
 					case 1:
 						Log.i("Utilator", "MainSurface, switching to simulation");
 
-						SimulationSurface simulation = new SimulationSurface(ctx);
+						SimulationWeekSurface simulation = new SimulationWeekSurface(ctx);
 						ctx.setContentView(simulation);
 						break;
 				}

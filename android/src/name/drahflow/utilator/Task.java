@@ -28,7 +28,11 @@ public final class Task {
 		}
 	}
 
+	public final boolean hasConstantImportance(Date s, Date e) {
+		return task_utility.isConstant(s, e) && task_likelyhood_time.isConstant(s, e);
+	}
+
 	public final int calculateImportance(Date t) {
-		return task_utility.evaluate(t) * task_likelyhood_time.evaluate(t) / timeEstimate;
+		return (int)(1000l * task_utility.evaluate(t) * task_likelyhood_time.evaluate(t) / timeEstimate);
 	}
 }
