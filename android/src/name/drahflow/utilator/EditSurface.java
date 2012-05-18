@@ -255,7 +255,7 @@ class EditSurface extends WidgetView {
 						for(Map<String, Object> entry: currentTaskLikelyhoodTime) {
 							Log.i("Utilator", "EditSurface, checking: " + loadString(entry, "distribution"));
 							if(loadString(entry, "distribution").matches("^.muldays:.*")) {
-								Distribution.Muldays e = Distribution.parseMuldays(loadString(entry, "distribution"));
+								DistributionUtil.Muldays e = DistributionUtil.parseMuldays(loadString(entry, "distribution"));
 								e.days.add(isoDate(cal.getTime()));
 								String mask = e.toString();
 								Log.i("Utilator", "EditSurface, day mask updated: " + mask);
@@ -313,7 +313,7 @@ class EditSurface extends WidgetView {
 						for(Map<String, Object> entry: currentTaskLikelyhoodTime) {
 							Log.i("Utilator", "EditSurface, checking: " + loadString(entry, "distribution"));
 							if(loadString(entry, "distribution").matches("^.mulhours:.*")) {
-								Distribution.Mulhours e = Distribution.parseMulhours(loadString(entry, "distribution"));
+								DistributionUtil.Mulhours e = DistributionUtil.parseMulhours(loadString(entry, "distribution"));
 								e.hours.add(String.format("%02d:%02d+%d", selectedHour, selectedMinute, selectedDuration));
 								String mask = e.toString();
 								Log.i("Utilator", "EditSurface, hour mask updated: " + mask);

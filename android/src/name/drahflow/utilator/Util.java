@@ -59,6 +59,26 @@ class Util {
 	static public String isoFullDate(Date d) {
 		return isoFullDateFormat.format(d);
 	}
+	static public Date parseDate(String s) {
+		return parseDate(s, new TreeMap<String, Date>());
+	}
+	static public Date parseDate(String s, Map<String, Date> cache) {
+		Date cached = cache.get(s);
+		if(cached != null) return cached;
+
+		try {
+			try {
+				cached = isoFullDateFormat.parse(s);
+			} catch(ParseException e) {
+				cached = isoDateFormat.parse(s);
+			}
+		} catch(ParseException e) {
+			throw new Error("invalid date format: " + s, e);
+		}
+
+		cache.put(s, cached);
+		return cached;
+	}
 
 	public static String humanTime(long seconds) {
 		if(seconds < 60 * 2) {

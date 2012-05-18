@@ -25,23 +25,30 @@ public class Database {
 	public List<Task> loadAllTasks() {
 		List<Task> r = new ArrayList<Task>();
 
-		Cursor res = db.rawQuery(
+		AbstractWindowedCursor res = (AbstractWindowedCursor)db.rawQuery(
 				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task",
 				new String[] { });
 
-		while(res.moveToNext()) {
+		// this actually exists to initialize the underlying CursorWindow
+		if(!res.moveToNext()) return r;
+
+		final CursorWindow data = res.getWindow();
+		final int rows = data.getNumRows();
+
+		for(int row = 0; row < rows; ++row) {
 			Task t = new Task();
 
-			t.gid = res.getString(0);
-			t.title = res.getString(1);
-			t.description = res.getString(2);
-			t.author = res.getString(3);
-			t.seconds_estimate = res.getInt(4);
-			t.seconds_taken = res.getInt(5);
-			t.status = res.getInt(6);
-			t.closed_at = res.getString(7);
-			t.publication = res.getInt(8);
-			t.last_edit = res.getString(9);
+			t.gid = data.getString(row, 0);
+			t.title = data.getString(row, 1);
+			t.description = data.getString(row, 2);
+			t.author = data.getString(row, 3);
+			t.seconds_estimate = data.getInt(row, 4);
+			t.seconds_taken = data.getInt(row, 5);
+			t.status = data.getInt(row, 6);
+			t.closed_at = data.getString(row, 7);
+			t.publication = data.getInt(row, 8);
+			t.last_edit = data.getString(row, 9);
+			t.updateCachedFields();
 
 			r.add(t);
 		}
@@ -65,6 +72,7 @@ public class Database {
 			t.seconds_estimate = res.getInt(1);
 			t.seconds_taken = res.getInt(2);
 			t.status = res.getInt(3);
+			t.updateCachedFields();
 
 			r.add(t);
 		}
@@ -73,7 +81,7 @@ public class Database {
 		return r;
 	}
 
-	public Map<String, Object> loadManyTaskUtilities(String where) {
+	public Map<String, List<String>> loadManyTaskUtilities(String where) {
 		Map<String, List<String>> r = new HashMap<String, List<String>>();
 
 		Cursor res = db.rawQuery(
@@ -91,10 +99,10 @@ public class Database {
 		}
 
 		res.close();
-		return (Map<String, Object>)(Object)r;
+		return r;
 	}
 
-	public Map<String, Object> loadManyTaskLikelyhoodTime(String where) {
+	public Map<String, List<String>> loadManyTaskLikelyhoodTime(String where) {
 		Map<String, List<String>> r = new HashMap<String, List<String>>();
 
 		Cursor res = db.rawQuery(
@@ -112,7 +120,7 @@ public class Database {
 		}
 
 		res.close();
-		return (Map<String, Object>)(Object)r;
+		return r;
 	}
 
 	public Map<String, List<String>> loadManyTaskExternal(String where) {
@@ -429,8 +437,8 @@ public class Database {
 
 	public String getBestTask(Context ctx, Date when) {
 		List<Task> tasks = loadOpenTasks();
-		Map<String, Object> taskUtilities = loadManyTaskUtilities("WHERE t.status < 100");
-		Map<String, Object> taskLikelyhoodTime = loadManyTaskLikelyhoodTime("WHERE t.status < 100");
+		Map<String, List<String>> taskUtilities = loadManyTaskUtilities("WHERE t.status < 100");
+		Map<String, List<String>> taskLikelyhoodTime = loadManyTaskLikelyhoodTime("WHERE t.status < 100");
 
 		// Log.i("Utilator", "Tasks: " + tasks);
 
@@ -438,10 +446,10 @@ public class Database {
 		float bestImportance = 0;
 
 		for(Task task: tasks) {
-			task.task_utility = taskUtilities.get(task.gid);
-			task.task_likelyhood_time = taskLikelyhoodTime.get(task.gid);
+			task.task_utility = TimeDistribution.compile(0, taskUtilities.get(task.gid));
+			task.task_likelyhood_time = TimeDistribution.compile(990, taskLikelyhoodTime.get(task.gid));
 
-			float importance = Distribution.calculateImportance(ctx, this, when, task);
+			float importance = DistributionUtil.calculateImportance(ctx, this, when, task);
 			// Log.i("Utilator", "Task: " + loadString(task, "title"));
 			// Log.i("Utilator", "  importance: " + importance);
 

@@ -59,8 +59,8 @@ public class Synchronization {
 		resRoot.put("task", resTasks);
 
 		List<Task> tasks = ctx.db.loadAllTasks();
-		Map<String, Object> taskUtilities = ctx.db.loadManyTaskUtilities("");
-		Map<String, Object> taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime("");
+		Map<String, List<String>> taskUtilities = ctx.db.loadManyTaskUtilities("");
+		Map<String, List<String>> taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime("");
 		Map<String, List<String>> taskExternal = ctx.db.loadManyTaskExternal("");
 
 		for(Task task: tasks) {
@@ -82,10 +82,10 @@ public class Synchronization {
 			final String gid = task.gid;
 
 			resTask.put("utility",
-					taskUtilities.get(gid) == null? new JSONArray(): new JSONArray((List<String>)taskUtilities.get(gid)));
+					taskUtilities.get(gid) == null? new JSONArray(): new JSONArray(taskUtilities.get(gid)));
 
 			resTask.put("likelyhood_time",
-					taskLikelyhoodTime.get(gid) == null? new JSONArray(): new JSONArray((List<String>)taskLikelyhoodTime.get(gid)));
+					taskLikelyhoodTime.get(gid) == null? new JSONArray(): new JSONArray(taskLikelyhoodTime.get(gid)));
 
 			resTask.put("external",
 					taskExternal.get(gid) == null? new JSONArray(): new JSONArray(taskExternal.get(gid)));

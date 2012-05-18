@@ -16,8 +16,6 @@ class SimulationSurface extends WidgetView {
 
 	protected Calendar start = new GregorianCalendar();
 	protected List<Task> allTasks;
-	protected Map<String, Object> taskUtilities;
-	protected Map<String, Object> taskLikelyhoodTime;
 	protected List<Task> schedule;
 
 	public SimulationSurface(Utilator ctx) {
@@ -25,15 +23,14 @@ class SimulationSurface extends WidgetView {
 		this.ctx = ctx;
 
 		allTasks = ctx.db.loadAllTasks();
-		taskUtilities = ctx.db.loadManyTaskUtilities("WHERE status < 100");
-		taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime("WHERE status < 100");
+		Map<String, List<String>> taskUtilities = ctx.db.loadManyTaskUtilities("WHERE status < 100");
+		Map<String, List<String>> taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime("WHERE status < 100");
 
-		Distribution.compileDistributions(taskUtilities);
-		Distribution.compileDistributions(taskLikelyhoodTime);
+		Map<String, Date> dateCache = new HashMap<String, Date>();
 
 		for(Task t: allTasks) {
-			t.task_utility = taskUtilities.get(t.gid);
-			t.task_likelyhood_time = taskLikelyhoodTime.get(t.gid);
+			t.task_utility = TimeDistribution.compile(0, taskUtilities.get(t.gid), dateCache);
+			t.task_likelyhood_time = TimeDistribution.compile(990, taskLikelyhoodTime.get(t.gid), dateCache);
 		}
 
 		start.set(Calendar.HOUR_OF_DAY, 0);
@@ -71,21 +68,49 @@ class SimulationSurface extends WidgetView {
 		schedule = new ArrayList<Task>();
 		Calendar it = (Calendar)start.clone();
 
-		List<Task> relevantTasks = new ArrayList<Task>(allTasks);
 		Map<String, Integer> secondsUsed = new HashMap<String, Integer>();
 
-		for(int i = 0; i < 7 * 24 * 60 * 60; ) {
-			Task bestTask = null;
-			float bestImportance = 0;
-			final Date t = it.getTime();
+		final Date startDate = it.getTime();
+		final Date endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-			for(Task task: relevantTasks) {
-				float importance = Distribution.calculateImportance(ctx, ctx.db, t, task);
+		List<Task> nonConstantTasks = new ArrayList<Task>();
+		List<Task> constantTasks = new ArrayList<Task>();
+		for(Task t: allTasks) {
+			if(t.task_utility.isConstant(startDate, endDate)) {
+				constantTasks.add(t);
+			} else {
+				nonConstantTasks.add(t);
+			}
+		}
+
+		List<Integer> constantValues = new ArrayList<Integer>();
+		for(Task t: constantTasks) {
+			constantValues.add(t.calculateImportance(startDate));
+		}
+
+		Task[] relevantTasks = nonConstantTasks.toArray(new Task[0]);
+		int relevantTaskCount = relevantTasks.length;
+
+		final Date t = it.getTime();
+		for(int i = 0; i < 7 * 24 * 60 * 60; ) {
+			int bestIndex = -1;
+			int bestImportance = constantValues.get(0);
+
+			for(int j = 0; j < relevantTaskCount; ++j) {
+				final int importance = relevantTasks[j].calculateImportance(t);
 
 				if(importance > bestImportance) {
-					bestTask = task;
+					bestIndex = j;
 					bestImportance = importance;
 				}
+			}
+
+			Task bestTask;
+
+			if(bestIndex < 0) {
+				bestTask = constantTasks.get(0);
+			} else {
+				bestTask = relevantTasks[bestIndex];
 			}
 
 			schedule.add(bestTask);
@@ -100,13 +125,18 @@ class SimulationSurface extends WidgetView {
 			}
 
 			if(secondsUsed.get(bestTask.gid) >= bestTask.seconds_estimate) {
-				relevantTasks.remove(bestTask);
+				if(bestTask == constantTasks.get(0)) {
+					if(constantTasks.size() > 1) {
+						constantTasks.remove(0);
+						constantValues.remove(0);
+					}
+				} else {
+					relevantTasks[bestIndex] = relevantTasks[--relevantTaskCount];
+				}
 			}
 
 			i += delta;
-			it.add(Calendar.SECOND, delta);
-
-			Log.i("Utilator", "Simulation: " + it.getTime() + ": " + bestTask.title);
+			t.setTime(t.getTime() + delta * 1000);
 		}
 
 		Log.i("Utilator", "Simulation: end at " + new Date());
