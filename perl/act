@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Global qw(/./);
+use Query qw(/./);
+use Data::Dumper;
+
+my $task = Query::resolveTask($ARGV[0]) or die help();
+
+my $url = undef;
+
+if($task->{'title'} =~ /^(http[^ ]+) /) {
+  $url = $1;
+}
+
+if(defined $url) {
+  system("iceweasel '$url'");
+  print "www\n";
+}
