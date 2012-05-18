@@ -98,11 +98,15 @@ class MainSurface extends WidgetView {
 				title = "stuff";
 				actions = new Rect[] {
 					new Rect(0, 0, getWidth() / 3, 180),
-					new Rect(getWidth() / 3, 0, getWidth() * 2 / 3, 180)
+					new Rect(getWidth() / 3, 0, getWidth() * 2 / 3, 60),
+					new Rect(getWidth() / 3, 60, getWidth() * 2 / 3, 120),
+					new Rect(getWidth() / 3, 120, getWidth() * 2 / 3, 180)
 				};
 				actionNames = new String[] {
 					"timer",
-					"simul"
+					"day",
+					"week",
+					"year"
 				};
 			}
 
@@ -126,12 +130,24 @@ class MainSurface extends WidgetView {
 							}
 						}, 0, 1000);
 						break;
-					case 1:
-						Log.i("Utilator", "MainSurface, switching to simulation");
+					case 1: {
+							Log.i("Utilator", "MainSurface, switching to simulation of day");
 
-						SimulationWeekSurface simulation = new SimulationWeekSurface(ctx);
-						ctx.setContentView(simulation);
-						break;
+							SimulationDaySurface simulation = new SimulationDaySurface(ctx);
+							ctx.setContentView(simulation);
+						} break;
+					case 2: {
+							Log.i("Utilator", "MainSurface, switching to simulation of week");
+
+							SimulationWeekSurface simulation = new SimulationWeekSurface(ctx);
+							ctx.setContentView(simulation);
+						} break;
+					case 3: {
+							Log.i("Utilator", "MainSurface, switching to simulation of week");
+
+							SimulationYearSurface simulation = new SimulationYearSurface(ctx);
+							ctx.setContentView(simulation);
+						} break;
 				}
 			}
 		});
