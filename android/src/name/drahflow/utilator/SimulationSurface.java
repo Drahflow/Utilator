@@ -80,15 +80,17 @@ abstract public class SimulationSurface extends WidgetView {
 			}
 		}
 
+		final GregorianCalendar startCal = new GregorianCalendar();
+
 		Collections.sort(constantTasks, new Comparator<Task>() {
 			public int compare(Task a, Task b) {
-				return b.calculateImportance(startDate) - a.calculateImportance(startDate);
+				return b.calculateImportance(startDate, startCal) - a.calculateImportance(startDate, startCal);
 			}
 		});
 
 		List<Integer> constantValues = new ArrayList<Integer>();
 		for(Task t: constantTasks) {
-			constantValues.add(t.calculateImportance(startDate));
+			constantValues.add(t.calculateImportance(startDate, startCal));
 		}
 		if(constantValues.isEmpty()) {
 			Toast toast = Toast.makeText(ctx, "No constant tasks available.", Toast.LENGTH_SHORT);
@@ -104,12 +106,15 @@ abstract public class SimulationSurface extends WidgetView {
 		Log.i("Utilator", "Simulation: start date " + startDate);
 		Log.i("Utilator", "Simulation: end date " + endDate);
 
+		final GregorianCalendar tCal = new GregorianCalendar();
+		tCal.setTime(startDate);
+
 		for(Date t = new Date(startDate.getTime()); t.getTime() < endTime; ) {
 			int bestIndex = -1;
 			int bestImportance = constantValues.get(0);
 
 			for(int j = 0; j < relevantTaskCount; ++j) {
-				final int importance = relevantTasks[j].calculateImportance(t);
+				final int importance = relevantTasks[j].calculateImportance(t, tCal);
 
 				if(importance > bestImportance) {
 					bestIndex = j;
@@ -158,6 +163,8 @@ abstract public class SimulationSurface extends WidgetView {
 			}
 
 			t.setTime(t.getTime() + delta * 1000);
+			// FIXME: This takes way too much CPU
+			tCal.add(Calendar.SECOND, delta);
 		}
 
 		Log.i("Utilator", "Simulation: schedule length " + schedule.size());

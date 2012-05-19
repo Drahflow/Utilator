@@ -90,10 +90,13 @@ public class DistributionUtil {
 				timeEstimate = (float)loadInt(task, "seconds_estimate");
 			}
 
+			GregorianCalendar cal = new GregorianCalendar();
+			cal.setTime(time);
+
 			float utility = TimeDistribution.compile(0,
-					loadStringColumn(db.loadTaskUtilities(loadString(task, "gid")), "distribution")).evaluate(time);
+					loadStringColumn(db.loadTaskUtilities(loadString(task, "gid")), "distribution")).evaluate(time, cal);
 			float likelyhoodTime = TimeDistribution.compile(990,
-					loadStringColumn(db.loadTaskLikelyhoodTime(loadString(task, "gid")), "distribution")).evaluate(time);
+					loadStringColumn(db.loadTaskLikelyhoodTime(loadString(task, "gid")), "distribution")).evaluate(time, cal);
 
 			// Log.i("Utilator", "Task: " + loadString(task, "title"));
 			// Log.i("Utilator", "  timeEstimate: " + timeEstimate);
@@ -112,33 +115,5 @@ public class DistributionUtil {
 
 	private static class SortedList {
 		List<String> list;
-	}
-
-	public static float calculateImportance(Context ctx, Database db, Date time, Task task) {
-		try {
-			float timeEstimate;
-
-			if(task.status > 0 && task.seconds_taken > 0) {
-				timeEstimate = (float)task.seconds_taken * task.status / 100;
-			} else {
-				timeEstimate = (float)task.seconds_estimate;
-			}
-
-			float utility = task.task_utility.evaluate(time);
-			float likelyhoodTime = task.task_likelyhood_time.evaluate(time);
-
-			// Log.i("Utilator", "Task: " + loadString(task, "title"));
-			// Log.i("Utilator", "  timeEstimate: " + timeEstimate);
-			// Log.i("Utilator", "  utility: " + utility);
-			// Log.i("Utilator", "  likelyhoodTime: " + likelyhoodTime);
-
-			return utility * likelyhoodTime / timeEstimate / 1000000f;
-		} catch(Exception e) {
-			e.printStackTrace();
-			Toast toast = Toast.makeText(ctx, "Error in database: " + e.toString(), Toast.LENGTH_SHORT);
-			toast.show();
-
-			return 999999;
-		}
 	}
 }

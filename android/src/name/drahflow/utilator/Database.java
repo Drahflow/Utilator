@@ -444,14 +444,14 @@ public class Database {
 
 		Task bestTask = null;
 		float bestImportance = 0;
+		GregorianCalendar whenCal = new GregorianCalendar();
+		whenCal.setTime(when);
 
 		for(Task task: tasks) {
 			task.task_utility = TimeDistribution.compile(0, taskUtilities.get(task.gid));
 			task.task_likelyhood_time = TimeDistribution.compile(990, taskLikelyhoodTime.get(task.gid));
 
-			float importance = DistributionUtil.calculateImportance(ctx, this, when, task);
-			// Log.i("Utilator", "Task: " + loadString(task, "title"));
-			// Log.i("Utilator", "  importance: " + importance);
+			float importance = task.calculateImportance(when, whenCal);
 
 			if(importance > bestImportance) {
 				bestTask = task;

@@ -5,7 +5,7 @@ import java.util.*;
 public abstract class TimeDistribution {
 	private static GregorianCalendar cal = new GregorianCalendar();
 
-	abstract public int evaluate(Date t);
+	abstract public int evaluate(Date t, GregorianCalendar cal);
 	abstract public boolean isConstant(Date s, Date e);
 
 	public static TimeDistribution compile(int def, List<String> distribution) {
@@ -79,14 +79,11 @@ public abstract class TimeDistribution {
 
 				String[] parts = data[1].split(";");
 
-				Set<Date> dates = new HashSet<Date>();
+				Set<Long> dates = new HashSet<Long>();
 				for(String day: parts[0].split(",")) {
 					cal.setTime(Util.parseDate(day, cache));
-					cal.set(Calendar.HOUR_OF_DAY, 0);
-					cal.set(Calendar.MINUTE, 0);
-					cal.set(Calendar.SECOND, 0);
-					cal.set(Calendar.MILLISECOND, 0);
-					dates.add(cal.getTime());
+					final long date = cal.get(Calendar.YEAR) * 400 + cal.get(Calendar.MONTH) * 32 + cal.get(Calendar.DAY_OF_MONTH);
+					dates.add(date);
 				}
 
 				int multiplier = Integer.parseInt(parts[1]);

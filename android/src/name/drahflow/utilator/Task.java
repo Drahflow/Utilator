@@ -32,7 +32,7 @@ public final class Task {
 		return task_utility.isConstant(s, e) && task_likelyhood_time.isConstant(s, e);
 	}
 
-	public final int calculateImportance(Date t) {
-		return (int)(1000l * task_utility.evaluate(t) * task_likelyhood_time.evaluate(t) / timeEstimate);
+	public final int calculateImportance(Date t, GregorianCalendar cal) {
+		return (int)(1000l * task_utility.evaluate(t, cal) * task_likelyhood_time.evaluate(t, cal) / timeEstimate);
 	}
 }
