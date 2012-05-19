@@ -69,15 +69,15 @@ public class Synchronization {
 			JSONObject resTask = new JSONObject();
 
 			resTask.put("gid", task.gid);
-			resTask.put("title", task.gid);
-			resTask.put("description", task.gid);
-			resTask.put("author", task.gid);
-			resTask.put("seconds_estimate", task.gid);
-			resTask.put("seconds_taken", task.gid);
-			resTask.put("status", task.gid);
-			resTask.put("closed_at", task.gid);
-			resTask.put("publication", task.gid);
-			resTask.put("last_edit", task.gid);
+			resTask.put("title", task.title);
+			resTask.put("description", task.description);
+			resTask.put("author", task.author);
+			resTask.put("seconds_estimate", task.seconds_estimate);
+			resTask.put("seconds_taken", task.seconds_taken);
+			resTask.put("status", task.status);
+			resTask.put("closed_at", task.closed_at);
+			resTask.put("publication", task.publication);
+			resTask.put("last_edit", task.last_edit);
 
 			final String gid = task.gid;
 

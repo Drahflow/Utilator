@@ -25,12 +25,7 @@ class SimulationWeekSurface extends SimulationSurface {
 		taskColor.setColor(0xffff0000);
 
 		final int importanceDifference = maxImportance - minImportance + 1;
-		Date drawStart = start.getTime();
-
-		if(currentSelection != null) {
-			c.drawLine(0, currentSelectionY, getWidth(), currentSelectionY, SECONDARY_COLOR);
-			c.drawLine(currentSelectionX, 20, currentSelectionX, getHeight(), SECONDARY_COLOR);
-		}
+		Date drawStart = windowStart.getTime();
 
 		int y = 20;
 		for(int i = 0; i < 7; ++i) {
@@ -46,7 +41,7 @@ class SimulationWeekSurface extends SimulationSurface {
 			y += 40;
 		}
 
-		long s = start.getTime().getTime();
+		long s = windowStart.getTime().getTime();
 		long e = s + 86400 * 1000 * 7;
 		Task last = null;
 		for(int j = 0; j < scheduleTime.size() - 1; ++j) {
@@ -63,6 +58,9 @@ class SimulationWeekSurface extends SimulationSurface {
 		}
 
 		if(currentSelection != null) {
+			c.drawLine(0, currentSelectionY, getWidth(), currentSelectionY, SECONDARY_COLOR);
+			c.drawLine(currentSelectionX, 20, currentSelectionX, getHeight(), SECONDARY_COLOR);
+
 			c.drawText(schedule.get(currentSelection).title, 100, 20, PRIMARY_COLOR);
 			c.drawText(importance.get(currentSelection) * 0.0000036f + " u/h", 100, 260, PRIMARY_COLOR);
 		}
@@ -84,7 +82,7 @@ class SimulationWeekSurface extends SimulationSurface {
 				Integer newSelection = null;
 				if((y - 20) % 40 > 8 && (y - 20) % 40 < 24) {
 					int day = (y - 20) / 40;
-					long t = start.getTime().getTime() + day * 86400 * 1000;
+					long t = windowStart.getTime().getTime() + day * 86400 * 1000;
 					t += 86400 * x / getWidth() * 1000;
 
 					for(int i = 1; i < scheduleTime.size(); ++i) {
@@ -98,8 +96,9 @@ class SimulationWeekSurface extends SimulationSurface {
 					currentSelection = newSelection;
 					currentSelectionX = x;
 					currentSelectionY = y;
-					invalidate();
 				}
+
+				invalidate();
 				return true;
 		}
 

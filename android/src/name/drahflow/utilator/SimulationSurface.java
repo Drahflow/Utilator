@@ -14,7 +14,7 @@ import static name.drahflow.utilator.Util.*;
 abstract public class SimulationSurface extends WidgetView {
 	protected Utilator ctx;
 
-	protected Calendar start = new GregorianCalendar();
+	protected Calendar windowStart = new GregorianCalendar();
 	protected List<Task> allTasks;
 
 	protected List<Task> schedule;
@@ -28,8 +28,18 @@ abstract public class SimulationSurface extends WidgetView {
 	protected int currentSelectionY;
 
 	public SimulationSurface(Utilator ctx) {
+		this(ctx, new Date());
+	}
+
+	public SimulationSurface(Utilator ctx, Date windowStart) {
 		super(ctx);
 		this.ctx = ctx;
+
+		this.windowStart = new GregorianCalendar();
+		this.windowStart.setTime(windowStart);
+		this.windowStart.set(Calendar.HOUR_OF_DAY, 0);
+		this.windowStart.set(Calendar.MINUTE, 0);
+		this.windowStart.set(Calendar.SECOND, 0);
 
 		allTasks = ctx.db.loadAllTasks();
 		Map<String, List<String>> taskUtilities = ctx.db.loadManyTaskUtilities("WHERE status < 100");
@@ -42,9 +52,6 @@ abstract public class SimulationSurface extends WidgetView {
 			t.task_likelyhood_time = TimeDistribution.compile(990, taskLikelyhoodTime.get(t.gid), dateCache);
 		}
 
-		start.set(Calendar.HOUR_OF_DAY, 0);
-		start.set(Calendar.MINUTE, 0);
-		start.set(Calendar.SECOND, 0);
 		calculateSchedule();
 	}
 
@@ -61,7 +68,7 @@ abstract public class SimulationSurface extends WidgetView {
 		Map<String, Integer> secondsUsed = new HashMap<String, Integer>();
 
 		final Date startDate = new Date();
-		final Date endDate = new Date(startDate.getTime() + timeRange() * 1000);
+		final Date endDate = new Date(windowStart.getTime().getTime() + timeRange() * 1000l);
 
 		List<Task> nonConstantTasks = new ArrayList<Task>();
 		List<Task> constantTasks = new ArrayList<Task>();
@@ -91,10 +98,13 @@ abstract public class SimulationSurface extends WidgetView {
 
 		Task[] relevantTasks = nonConstantTasks.toArray(new Task[0]);
 		int relevantTaskCount = relevantTasks.length;
+		final long windowStartTime = windowStart.getTime().getTime();
+		final long endTime = endDate.getTime();
 
-		final Date t = new Date(startDate.getTime());
-		final int range = timeRange();
-		for(int i = 0; i < range; ) {
+		Log.i("Utilator", "Simulation: start date " + startDate);
+		Log.i("Utilator", "Simulation: end date " + endDate);
+
+		for(Date t = new Date(startDate.getTime()); t.getTime() < endTime; ) {
 			int bestIndex = -1;
 			int bestImportance = constantValues.get(0);
 
@@ -118,11 +128,13 @@ abstract public class SimulationSurface extends WidgetView {
 			schedule.add(bestTask);
 			scheduleTime.add(t.getTime());
 			importance.add(bestImportance);
-			if(bestImportance < minImportance) {
-				minImportance = bestImportance;
-			}
-			if(bestImportance > maxImportance) {
-				maxImportance = bestImportance;
+			if(t.getTime() > windowStartTime) {
+				if(bestImportance < minImportance) {
+					minImportance = bestImportance;
+				}
+				if(bestImportance > maxImportance) {
+					maxImportance = bestImportance;
+				}
 			}
 
 			int delta = bestTask.seconds_estimate;
@@ -145,10 +157,10 @@ abstract public class SimulationSurface extends WidgetView {
 				}
 			}
 
-			i += delta;
 			t.setTime(t.getTime() + delta * 1000);
 		}
 
+		Log.i("Utilator", "Simulation: schedule length " + schedule.size());
 		Log.i("Utilator", "Simulation: end at " + new Date());
 	}
 }

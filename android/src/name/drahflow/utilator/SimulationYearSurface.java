@@ -16,6 +16,12 @@ class SimulationYearSurface extends SimulationSurface {
 		super(ctx);
 	}
 
+	static final String[] monthInitial = new String[] {
+		"J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"
+	};
+
+	protected Date currentSelectedDate = null;
+
 	public void onDraw(Canvas c) {
 		super.onDraw(c);
 
@@ -24,74 +30,106 @@ class SimulationYearSurface extends SimulationSurface {
 		taskColor.setAntiAlias(true);
 		taskColor.setColor(0xffff0000);
 
-		final int importanceDifference = maxImportance - minImportance + 1;
-		Date drawStart = start.getTime();
-
-		if(currentSelection != null) {
-			c.drawLine(0, currentSelectionY, getWidth(), currentSelectionY, SECONDARY_COLOR);
-			c.drawLine(currentSelectionX, 20, currentSelectionX, getHeight(), SECONDARY_COLOR);
-		}
-
 		final int monthHeight = getHeight() / 12;
-		long s = start.getTime().getTime();
-		long e = s + 86400 * 1000 * 366;
+		final int dayWidth = getWidth() / 31;
+
+		final GregorianCalendar s = new GregorianCalendar();
+		s.setTime(windowStart.getTime());
+
 		Task last = null;
 
-		for(int j = 0; j < scheduleTime.size() - 1; ++j) {
-			long ts = scheduleTime.get(j);
-			long te = scheduleTime.get(j + 1);
-			if(ts > e) break;
+		int month = 0;
+		int j = 0;
+		for(int i = 0; i < 366; ++i) {
+			final int dayOfMonth = s.get(Calendar.DAY_OF_MONTH);
+			int xs = dayOfMonth * dayWidth;
+			int ys = month * monthHeight;
 
-			int ty = (int)(((ts - s) / 1000) / (30 * 86400) * monthHeight) + monthHeight;
-			int xs = (int)(getWidth() * (((ts - s) / 1000) % (30 * 86400)) / (30 * 86400));
-			int xe = (int)(getWidth() * (((te - s) / 1000) % (30 * 86400)) / (30 * 86400));
-			if(xe < xs) xe = getWidth();
+			if(dayOfMonth == 1 || i == 0) {
+				c.drawText(monthInitial[s.get(Calendar.MONTH)], 0, ys + monthHeight - 8, PRIMARY_COLOR);
+			}
 
-			c.drawRect(xs, ty - monthHeight * (importance.get(j) - minImportance) / importanceDifference, xe, ty, taskColor);
+			c.drawRect(xs, ys, xs + dayWidth - 2, ys + monthHeight - 2,
+					s.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY? PRIMARY_COLOR: SECONDARY_COLOR);
+
+			for(int k = 0; k < 4; ++k) {
+				long endTime = s.getTime().getTime() + (k + 1) * 6 * 60 * 60 * 1000;
+				int maxRangeImportance = 0;
+
+				while(j < scheduleTime.size() && scheduleTime.get(j) < endTime) {
+					final int importanceJ = importance.get(j);
+					if(importanceJ > maxRangeImportance) {
+						maxRangeImportance = importanceJ;
+					}
+
+					++j;
+				}
+
+				int drawImportance = (int)Math.log((double)maxRangeImportance / (maxImportance + 1));
+				//Log.i("Utilator", "Simulation: drawImportance " + drawImportance);
+
+				if(drawImportance < -(dayWidth - 3)) drawImportance = -(dayWidth - 3);
+				c.drawRect(xs, ys + (monthHeight - 2) * k / 4,
+						xs + (dayWidth - 2) + drawImportance, ys + (monthHeight - 2) * (k + 1) / 4, taskColor);
+			}
+
+			s.add(Calendar.DAY_OF_MONTH, 1);
+			if(s.get(Calendar.DAY_OF_MONTH) == 1) {
+				++month;
+			}
 		}
 
-		if(currentSelection != null) {
-			c.drawText(schedule.get(currentSelection).title, 100, 20, PRIMARY_COLOR);
-			c.drawText(importance.get(currentSelection) * 0.0000036f + " u/h", 100, 260, PRIMARY_COLOR);
+		if(currentSelectedDate != null) {
+			c.drawLine(0, currentSelectionY, getWidth(), currentSelectionY, SECONDARY_COLOR);
+			c.drawLine(currentSelectionX, 20, currentSelectionX, getHeight(), SECONDARY_COLOR);
+
+			c.drawText("" + currentSelectedDate, 20, 20, PRIMARY_COLOR);
+			c.drawText("" + currentSelectedDate, 20, getHeight() - 20, PRIMARY_COLOR);
 		}
 	}
 
 	public boolean onTouchEvent(MotionEvent e) {
-//		int x = (int)e.getX(0);
-//		int y = (int)e.getY(0);
-//
-//		switch(e.getActionMasked()) {
-//			case MotionEvent.ACTION_UP:
-//				if(currentSelection != null) {
-//					ctx.switchToTask(schedule.get(currentSelection).gid);
-//					return true;
-//				}
-//				break;
-//
-//			default:
-//				Integer newSelection = null;
-//				if((y - 20) % 40 > 8 && (y - 20) % 40 < 24) {
-//					int day = (y - 20) / 40;
-//					long t = start.getTime().getTime() + day * 86400 * 1000;
-//					t += 86400 * x / getWidth() * 1000;
-//
-//					for(int i = 1; i < scheduleTime.size(); ++i) {
-//						if(t > scheduleTime.get(i)) {
-//							newSelection = i - 1;
-//						}
-//					}
-//				}
-//
-//				if(newSelection != currentSelection) {
-//					currentSelection = newSelection;
-//					currentSelectionX = x;
-//					currentSelectionY = y;
-//					invalidate();
-//				}
-//				return true;
-//		}
-//
-		return false;
+		int x = (int)e.getX(0);
+		int y = (int)e.getY(0);
+
+		switch(e.getActionMasked()) {
+			case MotionEvent.ACTION_UP:
+				if(currentSelectedDate != null) {
+					ctx.setContentView(new SimulationDaySurface(ctx, currentSelectedDate));
+					return true;
+				}
+				return false;
+
+			default:
+				currentSelectedDate = null;
+
+				if(x > 0 && y > 0) {
+					final int monthHeight = getHeight() / 12;
+					final int dayWidth = getWidth() / 31;
+
+					final GregorianCalendar s = new GregorianCalendar();
+					s.setTime(windowStart.getTime());
+
+					int month = 0;
+					for(int i = 0; i < 366; ++i) {
+						final int dayOfMonth = s.get(Calendar.DAY_OF_MONTH);
+						int xs = dayOfMonth * dayWidth;
+						int ys = month * monthHeight;
+
+						if(x >= xs && y >= ys && x < xs + dayWidth - 2 && y < ys + monthHeight - 2) {
+							currentSelectedDate = s.getTime();
+						}
+
+						s.add(Calendar.DAY_OF_MONTH, 1);
+						if(s.get(Calendar.DAY_OF_MONTH) == 1) {
+							++month;
+						}
+					}
+				}
+
+				invalidate();
+				return true;
+		}
 	}
 
 	@Override protected int timeRange() {
