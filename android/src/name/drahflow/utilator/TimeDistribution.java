@@ -5,7 +5,7 @@ import java.util.*;
 public abstract class TimeDistribution {
 	private static GregorianCalendar cal = new GregorianCalendar();
 
-	abstract public int evaluate(Date t, GregorianCalendar cal);
+	abstract public int evaluate(long t, FakeCalendar cal);
 	abstract public boolean isConstant(Date s, Date e);
 
 	public static TimeDistribution compile(int def, List<String> distribution) {
@@ -46,10 +46,10 @@ public abstract class TimeDistribution {
 					data[1].substring(semicolon2 + 1)
 				};
 
-				Date start = Util.parseDate(parts[0], cache);
-				Date end = Util.parseDate(parts[1], cache);
+				final Date start = Util.parseDate(parts[0], cache);
+				final Date end = Util.parseDate(parts[1], cache);
 				int multiplier = Integer.parseInt(parts[2]);
-				entries.add(new TimeDistributionComplex.EntryMulrange(start, end, multiplier));
+				entries.add(new TimeDistributionComplex.EntryMulrange(start.getTime(), end.getTime(), multiplier));
 			} else if(data[0].equals("mulhours")) {
 				if(value != null) {
 					entries.add(new TimeDistributionComplex.EntryConstant(value));
@@ -103,11 +103,19 @@ public abstract class TimeDistribution {
 					final TimeDistributionComplex.EntryMulrange later = (TimeDistributionComplex.EntryMulrange)entries.get(i);
 
 					if(earlier.multiplier == 0 && later.multiplier == 0) {
-						earlier.start = earlier.start.compareTo(later.start) < 0? earlier.start: later.start;
-						earlier.end = earlier.end.compareTo(later.end) > 0? earlier.end: later.end;
+						if(earlier.start < later.start && earlier.end >= later.start) {
+							earlier.start = earlier.start;
+							earlier.end = later.end;
 
-						entries.remove(i);
-						--i;
+							entries.remove(i);
+							--i;
+						} else if(earlier.start > later.start && later.end >= earlier.start) { // it is actually backwards
+							earlier.start = later.start;
+							earlier.end = earlier.end;
+
+							entries.remove(i);
+							--i;
+						}
 					}
 				}
 			}

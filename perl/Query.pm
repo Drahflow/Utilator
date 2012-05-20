@@ -116,9 +116,11 @@ sub getTaskLikelyhoodTime($) {
 sub compileDistributions {
   my ($task) = @_;
 
-  if(@{$utility{$task->{'id'}}} == 1 and not $likelyhood_time{$task->{'id'}}) {
-    if($utility{$task->{'id'}}->[0] =~ /.constant:(.*)/) {
-      $task->{'compiled_utility'} = $1 * 990 / 1000000;
+  if(exists $utility{$task->{'id'}}) {
+    if(@{$utility{$task->{'id'}}} == 1 and not $likelyhood_time{$task->{'id'}}) {
+      if($utility{$task->{'id'}}->[0] =~ /.constant:(.*)/) {
+        $task->{'compiled_utility'} = $1 * 990 / 1000000;
+      }
     }
   }
 }

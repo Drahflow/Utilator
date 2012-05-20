@@ -30,6 +30,9 @@ EOSQL
     $task->{'likelyhood_time'} = [map { $_->{'distribution'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'})}];
 SELECT distribution FROM task_likelyhood_time WHERE task = (SELECT id FROM task WHERE gid = ?)
 EOSQL
+    $task->{'external'} = [map { $_->{'external'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'})}];
+SELECT external FROM task_external WHERE task = (SELECT id FROM task WHERE gid = ?)
+EOSQL
   }
 
   my %tasks = map { ($_->{'gid'}, $_) } @tasks;
@@ -78,6 +81,16 @@ EOSQL
     foreach my $entry (@{$task->{'likelyhood_time'}}) {
       dbh()->do(<<EOSQL, {}, $task->{'gid'}, $entry);
 INSERT INTO task_likelyhood_time (task, distribution) VALUES((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+    }
+
+    dbh()->do(<<EOSQL, {}, $task->{'gid'});
+DELETE FROM task_external WHERE task = (SELECT id FROM task WHERE gid = ?)
+EOSQL
+
+    foreach my $entry (@{$task->{'external'}}) {
+      dbh()->do(<<EOSQL, {}, $task->{'gid'}, $entry);
+INSERT INTO task_external (task, external) VALUES((SELECT id FROM task WHERE gid = ?), ?)
 EOSQL
     }
   }

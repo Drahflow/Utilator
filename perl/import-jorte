@@ -1,0 +1,93 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Date::Parse qw(str2time);
+use Date::Format qw(time2str);
+use List::Util qw(min max);
+use Data::Dumper;
+
+use Global qw(/./);
+
+my $file = $ARGV[0] or die "usage ./import-jorte <file>";
+
+my $author = 'mailto://drahflow@gmx.de';
+my $publication = PUBLICATION_PRIVATE;
+my $now = iso_full_date(time);
+
+open FILE, '<:encoding(iso-8859-1)', $file or die "cannot open $file: $!";
+<FILE>; # skip header
+while(my $line = <FILE>) {
+  die "no multi-line stuff supported, please fix export file manually" if($line =~ //);
+  chomp $line;
+
+  $line =~ m!(\d{4}/\d\d/\d\d),(\d\d:\d\d)?,(\d{4}/\d\d/\d\d)?,(\d\d:\d\d)?,([^",]*|"[^"]*"),([^",]*|"[^"]*"),([^",]*|"[^"]*"),0,0,0!
+    or die "cannot understand (maybe \" inside \"?): $line\n";
+
+  my ($startDay, $startTime, $endDay, $endTime, $title, $content, $place) = ($1, $2, $3, $4, $5, $6, $7);
+  $startDay =~ s!/!-!g if $startDay;
+  $endDay =~ s!/!-!g if $endDay;
+
+  my $description;
+
+  if($content and $place) {
+    $description = "$content $place";
+  } else {
+    $description = "$content$place";
+  }
+
+  my $start;
+  my $end;
+
+  if($startDay and $startTime) {
+    $start = str2time("$startDay $startTime");
+  } elsif($startDay) {
+    $start = str2time("$startDay");
+  } else {
+    die "no start date given: $line\n";
+  }
+
+  if($endDay and $endTime) {
+    $end = str2time("$endDay $endTime");
+  } elsif($endDay and $endDay gt $startDay) {
+    $end = str2time("$endDay");
+  } else {
+    $end = $start + 7200;
+  }
+
+  if($end < time) {
+    print "skipping, in the past: $title\n";
+    next;
+  }
+
+  my $seconds_estimate = $end - $start;
+  my $utility = 2 * $seconds_estimate / 3600;
+
+  my $gid = create_gid();
+
+  dbh()->do(<<EOSQL, {}, $gid, $author, $title, $description, $seconds_estimate, 0, 0, $publication, $now);
+  INSERT INTO task (gid, author, title, description, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+EOSQL
+
+  my $id = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid)->[0]->{'id'};
+  SELECT id FROM task WHERE gid = ?
+EOSQL
+
+  dbh()->do(<<EOSQL, {}, $id, "0constant:" . int($utility * 1000));
+  INSERT INTO task_utility (task, distribution) VALUES (?, ?)
+EOSQL
+  dbh()->do(<<EOSQL, {}, $gid, "0constant:990");
+  INSERT INTO task_likelyhood_time (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+  dbh()->do(<<EOSQL, {}, $gid, "2mulrange:1970-01-01;" . iso_full_date($start) . ";0");
+  INSERT INTO task_likelyhood_time (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+  dbh()->do(<<EOSQL, {}, $gid, "2mulrange:" . iso_full_date($end) . ";2999-12-31;0");
+  INSERT INTO task_likelyhood_time (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+
+  print "imported $gid: $title, $utility\n";
+}
+close FILE;

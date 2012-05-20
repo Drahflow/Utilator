@@ -97,7 +97,7 @@ public class Utilator extends Activity
 												Toast toast = Toast.makeText(Utilator.this, "no tasks match", Toast.LENGTH_SHORT);
 												toast.show();
 											} else {
-												main.setTask(matching.iterator().next());
+												main.setTask(matching.iterator().next().split(":")[0]);
 											}
 										}
 								}).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {

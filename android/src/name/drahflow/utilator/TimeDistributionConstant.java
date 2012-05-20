@@ -11,7 +11,7 @@ public class TimeDistributionConstant extends TimeDistribution {
 		this.v = v;
 	}
 
-	public int evaluate(Date t, GregorianCalendar cal) {
+	public int evaluate(long t, FakeCalendar cal) {
 		return v;
 	}
 }

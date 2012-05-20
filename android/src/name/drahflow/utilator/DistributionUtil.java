@@ -90,13 +90,13 @@ public class DistributionUtil {
 				timeEstimate = (float)loadInt(task, "seconds_estimate");
 			}
 
-			GregorianCalendar cal = new GregorianCalendar();
+			FakeCalendar cal = new FakeCalendar();
 			cal.setTime(time);
 
 			float utility = TimeDistribution.compile(0,
-					loadStringColumn(db.loadTaskUtilities(loadString(task, "gid")), "distribution")).evaluate(time, cal);
+					loadStringColumn(db.loadTaskUtilities(loadString(task, "gid")), "distribution")).evaluate(time.getTime(), cal);
 			float likelyhoodTime = TimeDistribution.compile(990,
-					loadStringColumn(db.loadTaskLikelyhoodTime(loadString(task, "gid")), "distribution")).evaluate(time, cal);
+					loadStringColumn(db.loadTaskLikelyhoodTime(loadString(task, "gid")), "distribution")).evaluate(time.getTime(), cal);
 
 			// Log.i("Utilator", "Task: " + loadString(task, "title"));
 			// Log.i("Utilator", "  timeEstimate: " + timeEstimate);

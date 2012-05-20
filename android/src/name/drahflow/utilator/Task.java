@@ -20,6 +20,9 @@ public final class Task {
 	// cached stuff
 	int timeEstimate;
 
+	// stuff used by algorithms
+	int secondsUsed;
+
 	public final void updateCachedFields() {
 		if(status > 0 && seconds_taken > 0) {
 			timeEstimate = seconds_taken * status / 100;
@@ -32,7 +35,7 @@ public final class Task {
 		return task_utility.isConstant(s, e) && task_likelyhood_time.isConstant(s, e);
 	}
 
-	public final int calculateImportance(Date t, GregorianCalendar cal) {
+	public final int calculateImportance(long t, FakeCalendar cal) {
 		return (int)(1000l * task_utility.evaluate(t, cal) * task_likelyhood_time.evaluate(t, cal) / timeEstimate);
 	}
 }

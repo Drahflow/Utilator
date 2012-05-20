@@ -11,11 +11,11 @@ my $task = Query::resolveTask($ARGV[0]) or die help();
 
 my $url = undef;
 
-if($task->{'title'} =~ /^(http[^ ]+) /) {
+if($task->{'title'} =~ /^(http[^ ]+)/) {
   $url = $1;
 }
 
 if(defined $url) {
   system("iceweasel '$url'");
-  print "www\n";
+  system("wmiir xwrite /ctl view 'www'");
 }

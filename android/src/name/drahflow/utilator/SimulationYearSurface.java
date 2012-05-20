@@ -81,7 +81,7 @@ class SimulationYearSurface extends SimulationSurface {
 
 		if(currentSelectedDate != null) {
 			c.drawLine(0, currentSelectionY, getWidth(), currentSelectionY, SECONDARY_COLOR);
-			c.drawLine(currentSelectionX, 20, currentSelectionX, getHeight(), SECONDARY_COLOR);
+			c.drawLine(currentSelectionX, 0, currentSelectionX, getHeight(), SECONDARY_COLOR);
 
 			c.drawText("" + currentSelectedDate, 20, 20, PRIMARY_COLOR);
 			c.drawText("" + currentSelectedDate, 20, getHeight() - 20, PRIMARY_COLOR);
@@ -125,6 +125,9 @@ class SimulationYearSurface extends SimulationSurface {
 							++month;
 						}
 					}
+
+					currentSelectionX = x;
+					currentSelectionY = y;
 				}
 
 				invalidate();
@@ -134,5 +137,9 @@ class SimulationYearSurface extends SimulationSurface {
 
 	@Override protected int timeRange() {
 		return 366 * 24 * 60 * 60;
+	}
+
+	@Override protected int timeStep() {
+		return 60 * 60;
 	}
 }
