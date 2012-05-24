@@ -103,15 +103,15 @@ public abstract class TimeDistribution {
 					final TimeDistributionComplex.EntryMulrange later = (TimeDistributionComplex.EntryMulrange)entries.get(i);
 
 					if(earlier.multiplier == 0 && later.multiplier == 0) {
-						if(earlier.start < later.start && earlier.end >= later.start) {
+						if(earlier.start < later.start && later.start <= earlier.end) {
 							earlier.start = earlier.start;
-							earlier.end = later.end;
+							earlier.end = earlier.end < later.end? later.end: earlier.end;
 
 							entries.remove(i);
 							--i;
-						} else if(earlier.start > later.start && later.end >= earlier.start) { // it is actually backwards
+						} else if(later.start < earlier.start && earlier.start <= later.end) { // it is actually backwards
 							earlier.start = later.start;
-							earlier.end = earlier.end;
+							earlier.end = earlier.end < later.end? later.end: earlier.end;
 
 							entries.remove(i);
 							--i;
