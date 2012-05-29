@@ -100,14 +100,26 @@ class MainSurface extends WidgetView {
 					new Rect(0, 0, getWidth() / 3, 180),
 					new Rect(getWidth() / 3, 0, getWidth() * 2 / 3, 60),
 					new Rect(getWidth() / 3, 60, getWidth() * 2 / 3, 120),
-					new Rect(getWidth() / 3, 120, getWidth() * 2 / 3, 180)
+					new Rect(getWidth() / 3, 120, getWidth() * 2 / 3, 180),
+					new Rect(getWidth() * 2 / 3, 0, getWidth(), getHeight())
 				};
 				actionNames = new String[] {
 					"timer",
 					"day",
 					"week",
-					"year"
+					"year",
+					"slot"
 				};
+			}
+
+			public long slotTime;
+			public long slotUtility;
+
+			@Override public void onMove(int x, int y) {
+				slotUtility = exponentialMap(x - getWidth() * 2 / 3, getWidth() / 3);
+				slotTime = exponentialMap(y, getHeight());
+				actionNames[4] = "slot " + humanTime(slotTime) + " " + (slotUtility / 1000f) + " u";
+				super.onMove(x, y);
 			}
 
 			@Override public void invokeAction(int n) {
@@ -147,6 +159,12 @@ class MainSurface extends WidgetView {
 
 							SimulationYearSurface simulation = new SimulationYearSurface(ctx);
 							ctx.setContentView(simulation);
+						} break;
+					case 4: {
+							Log.i("Utilator", "MainSurface, switching to slot selection");
+
+							SlotSelectionSurface slotSelect = new SlotSelectionSurface(ctx, slotTime, slotUtility);
+							ctx.setContentView(slotSelect);
 						} break;
 				}
 			}
