@@ -35,7 +35,7 @@ abstract class WidgetView extends View {
 		public Rect activateZone;
 
 		public void onDraw(Canvas c) { }
-		public void onActiveDraw(Canvas c) { onDraw(c); }
+		public void onActiveDraw(Canvas c, int x, int y) { onDraw(c); }
 		public void onMove(int x, int y) { }
 		public void onLift(int x, int y) { }
 	};
@@ -50,12 +50,12 @@ abstract class WidgetView extends View {
 			c.drawText(title, activateZone.centerX() - PRIMARY_COLOR.measureText(title) / 2, activateZone.centerY(), PRIMARY_COLOR);
 		}
 
-		@Override public void onActiveDraw(Canvas c) {
+		@Override public void onActiveDraw(Canvas c, int x, int y) {
 			c.drawRect(activateZone, ACTIVE_COLOR);
 			c.drawText(title, activateZone.centerX() - PRIMARY_COLOR.measureText(title) / 2, activateZone.centerY(), PRIMARY_COLOR);
 
 			for(int i = 0; i < actions.length; ++i) {
-				c.drawRect(actions[i], SECONDARY_COLOR);
+				c.drawRect(actions[i], actions[i].contains(x, y)? ACTIVE_COLOR: SECONDARY_COLOR);
 
 				final String name = actionNames[i];
 				float textStart = actions[i].centerX() - PRIMARY_COLOR.measureText(name) / 2;
@@ -82,17 +82,21 @@ abstract class WidgetView extends View {
 	};
 
 	protected Widget currentWidget = null;
+	protected int currentX = -1;
+	protected int currentY = -1;
 	protected List<Widget> widgets;
 
 	public void onDraw(Canvas c) {
 		if(widgets == null) setupWidgets();
 
 		for(Widget w: widgets) {
-			if(currentWidget == w) {
-				w.onActiveDraw(c);
-			} else {
-				w.onDraw(c);
-			}
+			if(currentWidget == w) continue;
+
+			w.onDraw(c);
+		}
+
+		if(currentWidget != null) {
+			currentWidget.onActiveDraw(c, currentX, currentY);
 		}
 	}
 
@@ -103,8 +107,8 @@ abstract class WidgetView extends View {
 	public boolean onTouchEvent(MotionEvent e) {
 		if(widgets == null) return false; // wait for setup first, i.e. wait for first drawing
 
-		int x = (int)e.getX(0);
-		int y = (int)e.getY(0);
+		int x = currentX = (int)e.getX(0);
+		int y = currentY = (int)e.getY(0);
 
 		switch(e.getActionMasked()) {
 			case MotionEvent.ACTION_DOWN:

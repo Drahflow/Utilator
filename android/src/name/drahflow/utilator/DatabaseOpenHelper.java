@@ -151,6 +151,15 @@ class DatabaseOpenHelper extends SQLiteOpenHelper {
 		db.execSQL("" +
 				"CREATE INDEX expectation_derivative_idx ON expectation_derivative (expectation);" +
 				"");
+
+		db.execSQL("" +
+				"CREATE TABLE log (" +
+				"  id INTEGER PRIMARY KEY," +
+				"  start TEXT NOT NULL," +
+				"  end TEXT NOT NULL," +
+				"  description TEXT NOT NULL" +
+				");" +
+				"");
 	}
 
 	@Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {

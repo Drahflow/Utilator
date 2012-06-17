@@ -487,4 +487,40 @@ public class Database {
 			db.endTransaction();
 		}
 	}
+
+	public List<String> getLastLogDescriptions(int limit) {
+		Cursor res = db.rawQuery("SELECT description FROM log ORDER BY end DESC LIMIT ?", new String[] { "" + limit });
+
+		List<String> r = new ArrayList<String>();
+		while(res.moveToNext()) {
+			r.add(res.getString(0));
+		}
+
+		res.close();
+		return r;
+	}
+
+	public String getLastLogTime() {
+		Cursor res = db.rawQuery("SELECT end FROM log ORDER BY end DESC LIMIT 1", new String[0]);
+
+		String r;
+		if(res.moveToNext()) {
+			r = res.getString(0);
+		} else {
+			r = isoFullDate(new Date());
+		}
+
+		res.close();
+		return r;
+	}
+
+	public void createLog(String start, String end, String description) {
+		db.beginTransaction();
+		try {
+			db.execSQL("INSERT INTO log (start, end, description) VALUES (?, ?, ?)", new String[] { start, end, description });
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
+	}
 }

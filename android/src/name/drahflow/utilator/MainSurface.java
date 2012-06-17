@@ -94,6 +94,53 @@ class MainSurface extends WidgetView {
 		});
 		widgets.add(new Button() {
 			{
+				activateZone = new Rect(getWidth() * 2 / 3, 140, getWidth(), 200);
+				updateActions();
+			}
+
+			public List<String> usefulMessages;
+			public String lastLog;
+
+			@Override public void invokeAction(int n) {
+				final int count = usefulMessages.size() + 1;
+
+				if(n < count - 1) {
+					ctx.db.createLog(lastLog, isoFullDate(new Date()), actionNames[n]);
+				} else {
+					final EditText input = new EditText(ctx);
+
+					new AlertDialog.Builder(ctx)
+							.setTitle("Log Entry")
+							.setView(input)
+							.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+								public void onClick(DialogInterface dialog, int whichButton) {
+									ctx.db.createLog(lastLog, isoFullDate(new Date()), input.getText().toString()); 
+								}
+							}).show();
+				}
+
+				updateActions();
+			}
+
+			private void updateActions() {
+				lastLog = ctx.db.getLastLogTime();
+				title = "log: " + lastLog;
+
+				usefulMessages = ctx.db.getLastLogDescriptions(8); 
+				final int count = usefulMessages.size() + 1;
+				actions = new Rect[count];
+				actionNames = new String[count];
+
+				for(int i = 0; i < usefulMessages.size(); ++i) {
+					actions[i] = new Rect(0, i * getHeight() / count, getWidth() / 3, (i + 1) * getHeight() / count);
+					actionNames[i] = usefulMessages.get(i);
+				}
+				actions[count - 1] = new Rect(0, (count - 1) * getHeight() / count, getWidth() / 3, count * getHeight() / count);
+				actionNames[count - 1] = "new";
+			}
+		});
+		widgets.add(new Button() {
+			{
 				activateZone = new Rect(0, 220, getWidth() / 3, 280);
 				title = "stuff";
 				actions = new Rect[] {
