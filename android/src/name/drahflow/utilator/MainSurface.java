@@ -106,6 +106,7 @@ class MainSurface extends WidgetView {
 
 				if(n < count - 1) {
 					ctx.db.createLog(lastLog, isoFullDate(new Date()), actionNames[n]);
+					updateActions();
 				} else {
 					final EditText input = new EditText(ctx);
 
@@ -115,11 +116,10 @@ class MainSurface extends WidgetView {
 							.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 								public void onClick(DialogInterface dialog, int whichButton) {
 									ctx.db.createLog(lastLog, isoFullDate(new Date()), input.getText().toString()); 
+									updateActions();
 								}
 							}).show();
 				}
-
-				updateActions();
 			}
 
 			private void updateActions() {
