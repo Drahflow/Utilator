@@ -60,6 +60,30 @@ class EditSurface extends WidgetView {
 		invalidate();
 	}
 
+	public void editTitle() {
+		final EditText input = new EditText(ctx);
+		input.setText(loadString(currentTask, "title"));
+
+		new AlertDialog.Builder(ctx)
+				.setTitle("Edit title")
+				.setView(input)
+				.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int whichButton) {
+							String title = input.getText().toString(); 
+							Log.i("Utilator", "EditSurface, title changed to: " + title);
+
+							ctx.db.setTitle(loadString(currentTask, "gid"), title);
+							ctx.db.touchTask(loadString(currentTask, "gid"));
+							setTask(loadString(currentTask, "gid"));
+						}
+				}).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int whichButton) { }
+				}).show();
+
+		InputMethodManager imm = (InputMethodManager) ctx.getSystemService(Context.INPUT_METHOD_SERVICE);
+		imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+	}
+
 	@Override protected void setupWidgets() {
 		super.setupWidgets();
 
@@ -78,29 +102,7 @@ class EditSurface extends WidgetView {
 
 			@Override public void invokeAction(int n) {
 				switch(n) {
-					case 0: {
-						final EditText input = new EditText(ctx);
-						input.setText(loadString(currentTask, "title"));
-
-						new AlertDialog.Builder(ctx)
-								.setTitle("Edit title")
-								.setView(input)
-								.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-										public void onClick(DialogInterface dialog, int whichButton) {
-											String title = input.getText().toString(); 
-											Log.i("Utilator", "EditSurface, title changed to: " + title);
-
-											ctx.db.setTitle(loadString(currentTask, "gid"), title);
-											ctx.db.touchTask(loadString(currentTask, "gid"));
-											setTask(loadString(currentTask, "gid"));
-										}
-								}).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-										public void onClick(DialogInterface dialog, int whichButton) { }
-								}).show();
-
-						InputMethodManager imm = (InputMethodManager) ctx.getSystemService(Context.INPUT_METHOD_SERVICE);
-						imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
-					} break;
+					case 0: editTitle(); break;
 					case 1: {
 						final EditText input = new EditText(ctx);
 						input.setText(loadString(currentTask, "description"));

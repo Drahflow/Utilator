@@ -371,6 +371,7 @@ class MainSurface extends WidgetView {
 						editor.setTask(gid);
 
 						ctx.setContentView(editor);
+						editor.editTitle();
 					} break;
 				}
 			}
