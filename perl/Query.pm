@@ -41,7 +41,8 @@ EOSQL
     }
     @tasks = grep {
       defined $_->{'title'} and $_->{'title'} =~ m/$mask/ or
-      defined $_->{'description'} and $_->{'description'} =~ m/$mask/
+      defined $_->{'description'} and $_->{'description'} =~ m/$mask/ or
+      defined $_->{'gid'} and $_->{'gid'} =~ m/$mask/
     } @tasks;
 
     if(@tasks > 1) {
