@@ -75,20 +75,23 @@ public class Utilator extends Activity
 
 											List<Task> allTasks = db.loadAllTasks();
 											final List<String> matching = new ArrayList<String>();
+											final List<String> matchingClosed = new ArrayList<String>();
 
 											for(Task task: allTasks) {
 												if(task.title.matches(".*" + regex + ".*") ||
 													task.description.matches(".*" + regex + ".*")) {
-													matching.add(task.gid + ":" + task.title);
+													(task.status < 100? matching: matchingClosed).add(task.title + ":" + task.gid);
 												}
 											}
+
+											matching.addAll(matchingClosed);
 
 											if(matching.size() > 1) {
 												AlertDialog.Builder builder = new AlertDialog.Builder(Utilator.this);
 												builder.setTitle("multiple matches");
 												builder.setItems(matching.toArray(new String[0]), new DialogInterface.OnClickListener(){
 													public void onClick(DialogInterface dialogInterface, int item) {
-														main.setTask(matching.get(item).substring(0, matching.get(item).indexOf(':')));
+														main.setTask(matching.get(item).split(":")[1]);
 														return;
 													}
 												});
@@ -97,7 +100,7 @@ public class Utilator extends Activity
 												Toast toast = Toast.makeText(Utilator.this, "no tasks match", Toast.LENGTH_SHORT);
 												toast.show();
 											} else {
-												main.setTask(matching.iterator().next().split(":")[0]);
+												main.setTask(matching.get(0).split(":")[1]);
 											}
 										}
 								}).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
