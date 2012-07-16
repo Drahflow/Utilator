@@ -135,4 +135,13 @@ dbh()->do(<<EOSQL);
 CREATE INDEX expectation_derivative_idx ON expectation_derivative (expectation);
 EOSQL
 
+dbh()->do(<<EOSQL);
+CREATE TABLE task_edit_last (
+  gid BLOB
+);
+EOSQL
+dbh()->do(<<EOSQL);
+INSERT INTO task_edit_last (gid) VALUES (NULL);
+EOSQL
+
 dbh()->disconnect();

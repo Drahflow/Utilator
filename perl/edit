@@ -79,6 +79,9 @@ EOSQL
   die help();
 }
 
+dbh()->do(<<EOSQL, {}, $gid);
+UPDATE task_edit_last SET gid = ?
+EOSQL
 print "edited: $gid\n";
 
 sub help {

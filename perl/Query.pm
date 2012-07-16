@@ -22,6 +22,16 @@ sub resolveTask($) {
 
   if($task eq 'c') {
     $task = [sortedTasks($now)]->[-1] or die "no current task";
+  } elsif($task eq 'l') {
+    my $gid = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })->[0];
+    SELECT gid FROM task_edit_last
+EOSQL
+
+    die "no last-edited task" unless $gid->{'gid'};
+
+    $task = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid->{'gid'})->[0] or die "gid not found";
+    SELECT * FROM task WHERE gid = ?
+EOSQL
   } elsif($task =~ m!^/(.*)/(.*)$!) {
     my $mask = $1;
     my $opts = $2;
