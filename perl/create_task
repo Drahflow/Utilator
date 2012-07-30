@@ -26,6 +26,10 @@ dbh()->do(<<EOSQL, {}, $id, "0constant:" . int($utility * 1000));
 INSERT INTO task_utility (task, distribution) VALUES (?, ?)
 EOSQL
 
+dbh()->do(<<EOSQL, {}, $gid);
+UPDATE task_edit_last SET gid = ?
+EOSQL
+
 dbh()->disconnect();
 
 print "$gid\n";
