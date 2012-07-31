@@ -40,7 +40,7 @@ eval {
     die "invalid sync secret";
   }
 
-  my $result = Synchronize::sync($in, 0);
+  my $result = Synchronize::sync($in, 0, $in->{'start_date'});
 
   print "Content-Type: application/json; charset=utf-8\n\n";
   print decode_utf8(encode_json($result));

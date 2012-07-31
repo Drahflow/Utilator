@@ -160,6 +160,15 @@ class DatabaseOpenHelper extends SQLiteOpenHelper {
 				"  description TEXT NOT NULL" +
 				");" +
 				"");
+
+		db.execSQL("" +
+				"CREATE TABLE last_sync (" +
+				"  last TEXT" +
+				");" +
+				"");
+		db.execSQL("" +
+				"INSERT INTO last_sync (last) VALUES ('1970-01-01');" +
+				"");
 	}
 
 	@Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {

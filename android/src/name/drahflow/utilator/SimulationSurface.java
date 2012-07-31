@@ -41,7 +41,7 @@ abstract public class SimulationSurface extends WidgetView {
 		this.windowStart.set(Calendar.MINUTE, 0);
 		this.windowStart.set(Calendar.SECOND, 0);
 
-		allTasks = ctx.db.loadAllTasks();
+		allTasks = ctx.db.loadAllTasks("WHERE status < 100");
 		Map<String, List<String>> taskUtilities = ctx.db.loadManyTaskUtilities("WHERE status < 100");
 		Map<String, List<String>> taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime("WHERE status < 100");
 

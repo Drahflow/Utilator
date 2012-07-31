@@ -37,14 +37,18 @@ public class Synchronization {
 			} finally {
 				urlConnection.disconnect();
 			}
+
+			ctx.db.updateLastSync();
 		} catch(MalformedURLException mue) {
 			throw new Error("Hard-coded URL was invalid", mue);
 		} catch(JSONException jsone) {
 			Toast toast = Toast.makeText(ctx, "Sync failed: " + jsone.toString(), Toast.LENGTH_LONG);
 			toast.show();
+			jsone.printStackTrace();
 		} catch(IOException ioe) {
 			Toast toast = Toast.makeText(ctx, "Sync failed: " + ioe.toString(), Toast.LENGTH_LONG);
 			toast.show();
+			ioe.printStackTrace();
 		}
 	}
 
@@ -54,14 +58,17 @@ public class Synchronization {
 		JSONObject resRoot = new JSONObject();
 		resRoot.put("version", 1);
 		resRoot.put("secret", Secrets.SYNC_SECRET);
+		resRoot.put("start_date", ctx.db.getLastSync());
 
 		JSONArray resTasks = new JSONArray();
 		resRoot.put("task", resTasks);
 
-		List<Task> tasks = ctx.db.loadAllTasks();
-		Map<String, List<String>> taskUtilities = ctx.db.loadManyTaskUtilities("");
-		Map<String, List<String>> taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime("");
-		Map<String, List<String>> taskExternal = ctx.db.loadManyTaskExternal("");
+		String where = "WHERE last_edit IS NULL OR last_edit > (SELECT last FROM last_sync)";
+
+		List<Task> tasks = ctx.db.loadAllTasks(where);
+		Map<String, List<String>> taskUtilities = ctx.db.loadManyTaskUtilities(where);
+		Map<String, List<String>> taskLikelyhoodTime = ctx.db.loadManyTaskLikelyhoodTime(where);
+		Map<String, List<String>> taskExternal = ctx.db.loadManyTaskExternal(where);
 
 		for(Task task: tasks) {
 			// FIXME: filter publication state
@@ -155,21 +162,27 @@ public class Synchronization {
 		final String gid = loadString(task, "gid");
 
 		ctx.db.deleteUtilities(gid);
-		JSONArray inUtilities = inTask.getJSONArray("utility");
-		for(int i = 0; i < inUtilities.length(); ++i) {
-			ctx.db.addUtility(gid, inUtilities.getString(i));
+		if(inTask.has("utility")) {
+			JSONArray inUtilities = inTask.getJSONArray("utility");
+			for(int i = 0; i < inUtilities.length(); ++i) {
+				ctx.db.addUtility(gid, inUtilities.getString(i));
+			}
 		}
 
 		ctx.db.deleteLikelyhoodsTime(gid);
-		JSONArray inLikelyhoodTime = inTask.getJSONArray("likelyhood_time");
-		for(int i = 0; i < inLikelyhoodTime.length(); ++i) {
-			ctx.db.addLikelyhoodTime(gid, inLikelyhoodTime.getString(i));
+		if(inTask.has("likelyhood_time")) {
+			JSONArray inLikelyhoodTime = inTask.getJSONArray("likelyhood_time");
+			for(int i = 0; i < inLikelyhoodTime.length(); ++i) {
+				ctx.db.addLikelyhoodTime(gid, inLikelyhoodTime.getString(i));
+			}
 		}
 
 		ctx.db.deleteExternal(gid);
-		JSONArray inExternal = inTask.getJSONArray("external");
-		for(int i = 0; i < inExternal.length(); ++i) {
-			ctx.db.addExternal(gid, inExternal.getString(i));
+		if(inTask.has("external")) {
+			JSONArray inExternal = inTask.getJSONArray("external");
+			for(int i = 0; i < inExternal.length(); ++i) {
+				ctx.db.addExternal(gid, inExternal.getString(i));
+			}
 		}
 	}
 }

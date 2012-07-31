@@ -73,7 +73,7 @@ public class Utilator extends Activity
 											String regex = input.getText().toString(); 
 											Log.i("Utilator", "Utilator, searched for " + regex);
 
-											List<Task> allTasks = db.loadAllTasks();
+											List<Task> allTasks = db.loadAllTasks("");
 											final List<String> matching = new ArrayList<String>();
 											final List<String> matchingClosed = new ArrayList<String>();
 
@@ -109,6 +109,17 @@ public class Utilator extends Activity
 
 						InputMethodManager imm = (InputMethodManager) Utilator.this.getSystemService(Context.INPUT_METHOD_SERVICE);
 						imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+					}
+				});
+		optionAction.put(menu.add("full sync"),
+				new Runnable() {
+					public void run() {
+						//Log.i("Utilator", "Syncing");
+
+						db.resetLastSync();
+						new Synchronization(Utilator.this).perform();
+
+						switchToBestTask();
 					}
 				});
 		optionAction.put(menu.add("sync"),

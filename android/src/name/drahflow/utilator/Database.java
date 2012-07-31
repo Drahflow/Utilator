@@ -22,11 +22,11 @@ public class Database {
 		db.close();
 	}
 
-	public List<Task> loadAllTasks() {
+	public List<Task> loadAllTasks(String where) {
 		List<Task> r = new ArrayList<Task>();
 
 		AbstractWindowedCursor res = (AbstractWindowedCursor)db.rawQuery(
-				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task",
+				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task " + where,
 				new String[] { });
 
 		// this actually exists to initialize the underlying CursorWindow
@@ -518,6 +518,39 @@ public class Database {
 		db.beginTransaction();
 		try {
 			db.execSQL("INSERT INTO log (start, end, description) VALUES (?, ?, ?)", new String[] { start, end, description });
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
+	}
+
+	public String getLastSync() {
+		Cursor res = db.rawQuery("SELECT last FROM last_sync", new String[0]);
+
+		String r;
+		res.moveToNext();
+		r = res.getString(0);
+
+		res.close();
+		return r;
+	}
+
+	public void resetLastSync() {
+		db.beginTransaction();
+		try {
+			db.execSQL("UPDATE last_sync SET last = ?", new String[0]);
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
+	}
+
+	public void updateLastSync() {
+		db.beginTransaction();
+		try {
+			db.execSQL("UPDATE last_sync SET last = ?", new String[] {
+				isoFullDate(new Date(new Date().getTime() - 60 * 86400 * 1000))
+			});
 			db.setTransactionSuccessful();
 		} finally {
 			db.endTransaction();
