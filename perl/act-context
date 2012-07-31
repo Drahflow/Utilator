@@ -1,0 +1,42 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Global qw(/./);
+use Query qw(/./);
+use Data::Dumper;
+
+my $task = Query::resolveTask($ARGV[0]) or die help();
+
+my %existing = map { ($_, 1) } split /\n/, qx!wmiir ls /lbar!;
+
+foreach my $tag (qw(www mail btc)) {
+  my $result;
+
+  if($tag eq 'mail') {
+    $result = $task->{'title'} =~ /mail/i or ($task->{'description'} or '') =~ /mail/i;
+  } elsif($tag eq 'www') {
+    $result = $task->{'title'} !~ /denken/i;
+  } elsif($tag eq 'btc') {
+    $result = 0;
+  }
+
+  $result = $result? 1: 0;
+
+  print "$tag: $result\n";
+
+  if($result and not $existing{$tag}) {
+    system("echo '#0000ff #000000 #000000 $tag' | wmiir create '/lbar/$tag'");
+  } elsif(not $result and $existing{$tag}) {
+    system("wmiir remove '/lbar/$tag'");
+  }
+}
+
+sub help {
+  return <<EOTXT
+./act-context <task gid / 'c'>
+
+Configures wmii to only display tags relevant for the task
+EOTXT
+}
