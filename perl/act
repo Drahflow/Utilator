@@ -11,7 +11,20 @@ my $task = Query::resolveTask($ARGV[0]) or die help();
 
 my $url = undef;
 
-if($task->{'title'} =~ /^(http[^ ]+)/) {
+if(not defined $url) {
+  my @external = map { $_->{'external'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'id'})};
+  SELECT external FROM task_external WHERE task = ?
+EOSQL
+
+  foreach my $ext (@external) {
+    if($ext =~ m!^redmine://(.*)!) {
+      $url = "https://$1";
+      last;
+    }
+  }
+}
+
+if(not defined $url and $task->{'title'} =~ /^(http[^ ]+)/) {
   $url = $1;
 }
 
