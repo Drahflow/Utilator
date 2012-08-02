@@ -12,9 +12,17 @@ my $maxCount = 999999;
 $maxCount = $ARGV[0] if(defined $ARGV[0]);
 my $opts = ($ARGV[1] or '');
 
+my $maxTime;
+if($opts =~ /(\d+[smhdw])/) {
+  $maxTime = interpretUnit($1);
+}
 my $gid = $opts =~ /g/;
 my $now = iso_full_date(time);
 my @tasks = Query::sortedTasks($now);
+
+if($maxTime) {
+  @tasks = grep { $_->{'seconds_estimate'} <= $maxTime } @tasks;
+}
 
 if(@tasks > $maxCount) {
   @tasks = @tasks[$#tasks - $maxCount + 1 .. $#tasks];
