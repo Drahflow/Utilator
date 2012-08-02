@@ -1,0 +1,44 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Global qw(/./);
+use Query qw(/./);
+use Data::Dumper;
+
+my $now = iso_full_date(time);
+
+my @tasks = Query::sortedTasks($now);
+
+my %likelyhood_time = ();
+
+my @likelyhood_time = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })};
+SELECT l.distribution, l.task FROM task_likelyhood_time l JOIN task t ON t.id = l.task WHERE t.status < 100
+EOSQL
+foreach my $l (@likelyhood_time) {
+  push @{$likelyhood_time{$l->{'task'}}}, $l->{'distribution'};
+}
+
+foreach my $task (@tasks) {
+  next unless $likelyhood_time{$task->{'id'}};
+  my ($lastEntry) = reverse sort @{$likelyhood_time{$task->{'id'}}};
+  next unless $lastEntry;
+
+  if($lastEntry =~ /^\d+mulrange:(.*);(.*);0/) {
+    if($1 lt $now and $2 ge '2500') {
+      print "Expired task: $task->{'title'}\n";
+
+      dbh()->do(<<EOSQL, {}, $now, $now, $task->{'gid'});
+      UPDATE task SET status = 100, last_edit = ?, closed_at = ? WHERE gid = ?
+EOSQL
+    }
+  }
+}
+
+sub help {
+  return <<EOTXT
+optimize
+EOTXT
+}
