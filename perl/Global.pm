@@ -2,7 +2,7 @@ package Global;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(dbh create_gid iso_date iso_full_date interpretUnit reverseInterpretUnit PUBLICATION_LOCAL PUBLICATION_PRIVATE PUBLICATION_MASKED PUBLICATION_TRANSPARENCY PUBLICATION_OFFER);
+@EXPORT_OK = qw(dbh create_gid iso_date iso_full_date interpretUnit interpretUnitExact reverseInterpretUnit PUBLICATION_LOCAL PUBLICATION_PRIVATE PUBLICATION_MASKED PUBLICATION_TRANSPARENCY PUBLICATION_OFFER);
 
 use strict;
 use warnings;
@@ -56,6 +56,20 @@ sub interpretUnit {
       'h' => 60 * 60,
       'd' => 60 * 60 * 12,
       'w' => 60 * 60 * 10 * 7,
+    }->{$+{'unit'}};
+}
+
+sub interpretUnitExact {
+  my ($str) = @_;
+  
+  $str =~ /(?'amount'[0-9.]+)\s*(?'unit'[wdhms])/ or die "bad time spec: $str";
+
+  return $+{'amount'} * {
+      's' => 1,
+      'm' => 60,
+      'h' => 60 * 60,
+      'd' => 60 * 60 * 24,
+      'w' => 60 * 60 * 24 * 7,
     }->{$+{'unit'}};
 }
 

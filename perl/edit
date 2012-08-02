@@ -74,7 +74,7 @@ EOSQL
   enwaitTask($task, $end);
 } elsif($what eq 'wait') {
   my $delta = $ARGV[2] or die help();
-  enwaitTask($task, time + interpretUnit($delta));
+  enwaitTask($task, time + interpretUnitExact($delta));
 } else {
   die help();
 }
