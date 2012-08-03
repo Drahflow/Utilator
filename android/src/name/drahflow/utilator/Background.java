@@ -37,7 +37,7 @@ public class Background extends BroadcastReceiver {
 			Notification notification = new Notification(R.drawable.icon, null, System.currentTimeMillis());
 			notification.defaults = Notification.DEFAULT_SOUND;
 			notification.flags |= Notification.FLAG_AUTO_CANCEL;
-			notification.setLatestEventInfo(ctx, "Task switch", loadString(db.loadTask(n), "title"), contentIntent);
+			notification.setLatestEventInfo(ctx, "Task switch", db.loadTask(n).title, contentIntent);
 
 			((NotificationManager)ctx.getSystemService(Context.NOTIFICATION_SERVICE))
 				.notify(0, notification);

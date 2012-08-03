@@ -168,6 +168,7 @@ class DatabaseOpenHelper extends SQLiteOpenHelper {
 				"");
 		db.execSQL("" +
 				"INSERT INTO last_sync (last) VALUES ('1970-01-01');" +
+				//"INSERT INTO last_sync (last) VALUES ('2012-07-01');" +
 				"");
 	}
 

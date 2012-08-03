@@ -13,7 +13,7 @@ import static name.drahflow.utilator.Util.*;
 class MainSurface extends WidgetView {
 	private long minimumUtility = 0;
 
-	private Map<String, Object> currentTask;
+	private Task currentTask;
 	private Timer timer;
 	private Date startedAt;
 	private int timeRunning;
@@ -53,20 +53,20 @@ class MainSurface extends WidgetView {
 		}
 
 		int y = 16;
-		for(String line: loadString(currentTask, "title").split("\n")) {
+		for(String line: currentTask.title.split("\n")) {
 			y = drawWrapped(c, line, 10, 320, y, PRIMARY_COLOR) + 20;
 		}
 
-		for(String line: loadString(currentTask, "description").split("\n")) {
+		for(String line: currentTask.description.split("\n")) {
 			y = drawWrapped(c, line, 10, 320, y, PRIMARY_COLOR) + 20;
 		}
 
 		float importance = DistributionUtil.calculateImportance(ctx, ctx.db, new Date(), currentTask);
 		y = drawWrapped(c, importance * 3600 + " u / h", 10, 320, y, PRIMARY_COLOR) + 20;
 
-		c.drawLine(0, 198, getWidth() * (loadInt(currentTask, "seconds_taken") + timeRunning) /
-				loadInt(currentTask, "seconds_estimate"), 198, PRIMARY_COLOR);
-		String estStr = humanTime(loadInt(currentTask, "seconds_estimate"));
+		c.drawLine(0, 198, getWidth() * (currentTask.seconds_taken + timeRunning) /
+				currentTask.seconds_estimate, 198, PRIMARY_COLOR);
+		String estStr = humanTime(currentTask.seconds_estimate);
 		c.drawText(estStr, (getWidth() - PRIMARY_COLOR.measureText(estStr)) / 2, 198, PRIMARY_COLOR);
 	}
 
@@ -247,16 +247,16 @@ class MainSurface extends WidgetView {
 				switch(n) {
 					case 0:
 						Log.i("Utilator", "MainSurface, task failed, retry in " + retryTime);
-						if(ctx.db.loadTaskLikelyhoodTime(loadString(currentTask, "gid")).isEmpty()) {
-							ctx.db.addLikelyhoodTime(loadString(currentTask, "gid"), "0constant:990");
+						if(ctx.db.loadTaskLikelyhoodTime(currentTask.gid).isEmpty()) {
+							ctx.db.addLikelyhoodTime(currentTask, "0constant:990");
 						}
 
 						ctx.db.addLikelyhoodTime(
-								loadString(currentTask, "gid"),
+								currentTask,
 								"2mulrange:" + isoFullDate(new Date()) +
 								";" + isoFullDate(new Date(new Date().getTime() + retryTime * 1000)) +
 								";0");
-						ctx.db.touchTask(loadString(currentTask, "gid"));
+						ctx.db.touchTask(currentTask.gid);
 
 						ctx.switchToBestTask();
 						break;
@@ -264,12 +264,12 @@ class MainSurface extends WidgetView {
 					case 1:
 						Log.i("Utilator", "MainSurface, task done in " + timeRunning);
 						ctx.db.addTimeTaken(
-								loadString(currentTask, "gid"),
+								currentTask.gid,
 								timeRunning);
 						ctx.db.setStatus(
-								loadString(currentTask, "gid"),
+								currentTask.gid,
 								100);
-						ctx.db.touchTask(loadString(currentTask, "gid"));
+						ctx.db.touchTask(currentTask.gid);
 
 						ctx.switchToBestTask();
 						break;
@@ -277,9 +277,9 @@ class MainSurface extends WidgetView {
 					case 2:
 						Log.i("Utilator", "MainSurface, task already done");
 						ctx.db.setStatus(
-								loadString(currentTask, "gid"),
+								currentTask.gid,
 								100);
-						ctx.db.touchTask(loadString(currentTask, "gid"));
+						ctx.db.touchTask(currentTask.gid);
 
 						ctx.switchToBestTask();
 						break;
@@ -322,8 +322,8 @@ class MainSurface extends WidgetView {
 						}
 
 						Log.i("Utilator", "MainSurface, task completion " + selectedStatus);
-						ctx.db.setStatus(loadString(currentTask, "gid"), selectedStatus);
-						ctx.db.touchTask(loadString(currentTask, "gid"));
+						ctx.db.setStatus(currentTask.gid, selectedStatus);
+						ctx.db.touchTask(currentTask.gid);
 
 						ctx.switchToBestTask();
 						break;
@@ -335,8 +335,8 @@ class MainSurface extends WidgetView {
 						}
 
 						Log.i("Utilator", "MainSurface, task utility changed to " + selectedUtility);
-						ctx.db.setUtility(loadString(currentTask, "gid"), selectedUtility);
-						ctx.db.touchTask(loadString(currentTask, "gid"));
+						ctx.db.setUtility(currentTask.gid, selectedUtility);
+						ctx.db.touchTask(currentTask.gid);
 
 						ctx.switchToBestTask();
 						break;
@@ -349,7 +349,7 @@ class MainSurface extends WidgetView {
 
 						Log.i("Utilator", "MainSurface, editing task");
 						EditSurface editor = new EditSurface(ctx);
-						editor.setTask(loadString(currentTask, "gid"));
+						editor.setTask(currentTask.gid);
 
 						ctx.setContentView(editor);
 					} break;
@@ -389,7 +389,7 @@ class MainSurface extends WidgetView {
 		if(currentTask == null) {
 			ctx.switchToBestTask();
 		} else {
-			setTask(loadString(currentTask, "gid"));
+			setTask(currentTask.gid);
 		}
 	}
 	

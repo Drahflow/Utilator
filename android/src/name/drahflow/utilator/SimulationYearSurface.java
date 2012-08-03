@@ -20,8 +20,8 @@ class SimulationYearSurface extends SimulationSurface {
 		"J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"
 	};
 
-	protected Date currentSelectedDate = null;
-
+	public long scrollOffset = 0;
+	
 	public void onDraw(Canvas c) {
 		super.onDraw(c);
 
@@ -30,61 +30,73 @@ class SimulationYearSurface extends SimulationSurface {
 		taskColor.setAntiAlias(true);
 		taskColor.setColor(0xffff0000);
 
-		final int monthHeight = getHeight() / 12;
-		final int dayWidth = getWidth() / 31;
+		final int importanceDifference = maxImportance - minImportance + 1;
+		long drawStart = windowStart.getTime().getTime() + scrollOffset;
 
-		final GregorianCalendar s = new GregorianCalendar();
-		s.setTime(windowStart.getTime());
+		int y = 20;
+		for(int i = 0; i < 7; ++i) {
+			final String isoDate = isoDateFormat.format(drawStart);
+			c.drawText(isoDate, 0, y, PRIMARY_COLOR);
 
-		Task last = null;
-
-		int month = 0;
-		int j = 0;
-		for(int i = 0; i < 366; ++i) {
-			final int dayOfMonth = s.get(Calendar.DAY_OF_MONTH);
-			int xs = dayOfMonth * dayWidth;
-			int ys = month * monthHeight;
-
-			if(dayOfMonth == 1 || i == 0) {
-				c.drawText(monthInitial[s.get(Calendar.MONTH)], 0, ys + monthHeight - 8, PRIMARY_COLOR);
+			for(int h = 1; h < 24; ++h) {
+				final int x = 60 + (getWidth() - 60) * h / 24;
+				c.drawLine(x, y + 4, x, y + 24, h % 6 == 0? PRIMARY_COLOR: SECONDARY_COLOR);
 			}
 
-			c.drawRect(xs, ys, xs + dayWidth - 2, ys + monthHeight - 2,
-					s.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY? PRIMARY_COLOR: SECONDARY_COLOR);
-
-			for(int k = 0; k < 4; ++k) {
-				long endTime = s.getTime().getTime() + (k + 1) * 6 * 60 * 60 * 1000;
-				int maxRangeImportance = 0;
-
-				while(j < scheduleTime.size() && scheduleTime.get(j) < endTime) {
-					final int importanceJ = importance.get(j);
-					if(importanceJ > maxRangeImportance) {
-						maxRangeImportance = importanceJ;
-					}
-
-					++j;
-				}
-
-				int drawImportance = (int)Math.log((double)maxRangeImportance / (maxImportance + 1));
-				//Log.i("Utilator", "Simulation: drawImportance " + drawImportance);
-
-				if(drawImportance < -(dayWidth - 3)) drawImportance = -(dayWidth - 3);
-				c.drawRect(xs, ys + (monthHeight - 2) * k / 4,
-						xs + (dayWidth - 2) + drawImportance, ys + (monthHeight - 2) * (k + 1) / 4, taskColor);
-			}
-
-			s.add(Calendar.DAY_OF_MONTH, 1);
-			if(s.get(Calendar.DAY_OF_MONTH) == 1) {
-				++month;
-			}
+			drawStart += 86400 * 1000;
+			y += 40;
 		}
 
-		if(currentSelectedDate != null) {
-			c.drawLine(0, currentSelectionY, getWidth(), currentSelectionY, SECONDARY_COLOR);
-			c.drawLine(currentSelectionX, 0, currentSelectionX, getHeight(), SECONDARY_COLOR);
+		long s = windowStart.getTime().getTime() + scrollOffset;
+		long e = s + 86400 * 1000 * 7;
 
-			c.drawText("" + currentSelectedDate, 20, 20, PRIMARY_COLOR);
-			c.drawText("" + currentSelectedDate, 20, getHeight() - 20, PRIMARY_COLOR);
+		final Paint smallFont = new Paint(PRIMARY_COLOR);
+		smallFont.setTextSize(8);
+		Task last = null;
+		int lastTy = -1;
+		float lastImportance = -1;
+		int labelOffsetY = 0;
+
+		for(int j = 0; j < scheduleTime.size() - 1; ++j) {
+			long ts = scheduleTime.get(j);
+			long te = scheduleTime.get(j + 1);
+			if(te < s) continue;
+			if(ts > e) break;
+
+			int ty = (int)(20 + ((ts - s) / 1000) / 86400 * 40);
+			int xs = 60 + (int)((getWidth() - 60) * (((ts - s) / 1000) % 86400) / 86400);
+			int xe = 60 + (int)((getWidth() - 60) * (((te - s) / 1000) % 86400) / 86400);
+			if(xs < 60) xs = 60;
+			if(xe < xs) xe = getWidth();
+
+			c.drawRect(xs, ty + 20 - 12l * (importance.get(j) - minImportance) / importanceDifference, xe, ty + 24, taskColor);
+
+			if(last != schedule.get(j)) {
+				if(importance.get(j) > lastImportance) {
+					if(ty == lastTy) {
+						labelOffsetY = labelOffsetY + 10;
+					} else {
+						labelOffsetY = 0;
+					}
+
+					c.drawText(isoTime(ts), 100, ty - 5 + labelOffsetY, smallFont);
+					c.drawText(schedule.get(j).title, 130, ty - 5 + labelOffsetY, smallFont);
+
+					lastTy = ty;
+				}
+
+				lastImportance = importance.get(j);
+			}
+
+			last = schedule.get(j);
+		}
+
+		if(currentSelection != null) {
+			c.drawLine(60, currentSelectionY, getWidth() - 60, currentSelectionY, SECONDARY_COLOR);
+			c.drawLine(currentSelectionX, 20, currentSelectionX, getHeight(), SECONDARY_COLOR);
+
+			c.drawText(schedule.get(currentSelection).title, 100, 20, PRIMARY_COLOR);
+			c.drawText(importance.get(currentSelection) * 0.0000036f + " u/h", 100, 260, PRIMARY_COLOR);
 		}
 	}
 
@@ -94,45 +106,47 @@ class SimulationYearSurface extends SimulationSurface {
 
 		switch(e.getActionMasked()) {
 			case MotionEvent.ACTION_UP:
-				if(currentSelectedDate != null) {
-					ctx.setContentView(new SimulationDaySurface(ctx, currentSelectedDate));
+				if(currentSelection != null) {
+					ctx.switchToTask(schedule.get(currentSelection).gid);
 					return true;
 				}
-				return false;
+				break;
 
 			default:
-				currentSelectedDate = null;
+				Integer newSelection = null;
+				if(x > 60) {
+					if((y - 20) % 40 > 8 && (y - 20) % 40 < 24) {
+						int day = (y - 20) / 40;
+						long t = windowStart.getTime().getTime() + scrollOffset + day * 86400 * 1000;
+						t += 86400 * (x - 60) / (getWidth() - 60) * 1000;
 
-				if(x > 0 && y > 0) {
-					final int monthHeight = getHeight() / 12;
-					final int dayWidth = getWidth() / 31;
-
-					final GregorianCalendar s = new GregorianCalendar();
-					s.setTime(windowStart.getTime());
-
-					int month = 0;
-					for(int i = 0; i < 366; ++i) {
-						final int dayOfMonth = s.get(Calendar.DAY_OF_MONTH);
-						int xs = dayOfMonth * dayWidth;
-						int ys = month * monthHeight;
-
-						if(x >= xs && y >= ys && x < xs + dayWidth - 2 && y < ys + monthHeight - 2) {
-							currentSelectedDate = s.getTime();
-						}
-
-						s.add(Calendar.DAY_OF_MONTH, 1);
-						if(s.get(Calendar.DAY_OF_MONTH) == 1) {
-							++month;
+						for(int i = 1; i < scheduleTime.size(); ++i) {
+							if(t > scheduleTime.get(i)) {
+								newSelection = i;
+							}
 						}
 					}
 
-					currentSelectionX = x;
-					currentSelectionY = y;
+					if(newSelection != currentSelection) {
+						currentSelection = newSelection;
+						currentSelectionX = x;
+						currentSelectionY = y;
+					}
+				} else if(x > 30) {
+					scrollOffset = (long)(y / 2) * 86400 * 1000;
+
+					currentSelection = null;
+				} else if(x > 0) {
+					scrollOffset = (long)(150 + y / 2) * 86400 * 1000;
+
+					currentSelection = null;
 				}
 
 				invalidate();
 				return true;
 		}
+
+		return false;
 	}
 
 	@Override protected int timeRange() {

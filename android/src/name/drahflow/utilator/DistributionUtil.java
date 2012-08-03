@@ -78,27 +78,27 @@ public class DistributionUtil {
 		return r;
 	}
 
-	public static float calculateImportance(Context ctx, Database db, Date time, Map<String, Object> task) {
+	public static float calculateImportance(Context ctx, Database db, Date time, Task task) {
 		float timeEstimate;
 
 		try {
-			final int secondsTaken = loadInt(task, "seconds_taken");
-			final int status = loadInt(task, "status");
+			final int secondsTaken = task.seconds_taken;
+			final int status = task.status;
 			if(status > 0 && secondsTaken > 0) {
 				timeEstimate = (float)secondsTaken * status / 100;
 			} else {
-				timeEstimate = (float)loadInt(task, "seconds_estimate");
+				timeEstimate = (float)task.seconds_estimate;
 			}
 
 			FakeCalendar cal = new FakeCalendar();
 			cal.setTime(time);
 
 			float utility = TimeDistribution.compile(0,
-					loadStringColumn(db.loadTaskUtilities(loadString(task, "gid")), "distribution")).evaluate(time.getTime(), cal);
+					loadStringColumn(db.loadTaskUtilities(task.gid), "distribution")).evaluate(time.getTime(), cal);
 			float likelyhoodTime = TimeDistribution.compile(990,
-					loadStringColumn(db.loadTaskLikelyhoodTime(loadString(task, "gid")), "distribution")).evaluate(time.getTime(), cal);
+					loadStringColumn(db.loadTaskLikelyhoodTime(task.gid), "distribution")).evaluate(time.getTime(), cal);
 
-			// Log.i("Utilator", "Task: " + loadString(task, "title"));
+			// Log.i("Utilator", "Task: " + task.title);
 			// Log.i("Utilator", "  timeEstimate: " + timeEstimate);
 			// Log.i("Utilator", "  utility: " + utility);
 			// Log.i("Utilator", "  likelyhoodTime: " + likelyhoodTime);

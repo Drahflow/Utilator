@@ -136,14 +136,18 @@ public class Synchronization {
 
 		for(int i = 0; i < inTasks.length(); ++i) {
 			JSONObject inTask = inTasks.getJSONObject(i);
-			Map<String, Object> task = ctx.db.loadTask(inTask.getString("gid"));
+			Task task = ctx.db.loadTask(inTask.getString("gid"));
+
+			Log.i("Utilator", "Considering Task: " + inTask.getString("title"));
 
 			if(task == null) {
 				ctx.db.createEmptyTask(inTask.getString("gid"));
 				writeTask(inTask);
-			} else if(task.get("last_edit") == null) {
+			} else if(task.last_edit == null) {
+				Log.i("Utilator", "Task written, last_edit == null: " + task.title);
 				writeTask(inTask);
-			} else if(loadString(task, "last_edit").compareTo(inTask.getString("last_edit")) < 0) {
+			} else if(task.last_edit.compareTo(inTask.getString("last_edit")) < 0) {
+				Log.i("Utilator", "Task written, last_edit newer: " + task.title);
 				writeTask(inTask);
 			}
 		}
@@ -159,29 +163,29 @@ public class Synchronization {
 		}
 
 		ctx.db.updateTask(task);
-		final String gid = loadString(task, "gid");
+		Task t = ctx.db.loadTask(loadString(task, "gid"));
 
-		ctx.db.deleteUtilities(gid);
+		ctx.db.deleteUtilities(t.gid);
 		if(inTask.has("utility")) {
 			JSONArray inUtilities = inTask.getJSONArray("utility");
 			for(int i = 0; i < inUtilities.length(); ++i) {
-				ctx.db.addUtility(gid, inUtilities.getString(i));
+				ctx.db.addUtility(t.gid, inUtilities.getString(i));
 			}
 		}
 
-		ctx.db.deleteLikelyhoodsTime(gid);
+		ctx.db.deleteLikelyhoodsTime(t.gid);
 		if(inTask.has("likelyhood_time")) {
 			JSONArray inLikelyhoodTime = inTask.getJSONArray("likelyhood_time");
 			for(int i = 0; i < inLikelyhoodTime.length(); ++i) {
-				ctx.db.addLikelyhoodTime(gid, inLikelyhoodTime.getString(i));
+				ctx.db.addLikelyhoodTime(t, inLikelyhoodTime.getString(i));
 			}
 		}
 
-		ctx.db.deleteExternal(gid);
+		ctx.db.deleteExternal(t.gid);
 		if(inTask.has("external")) {
 			JSONArray inExternal = inTask.getJSONArray("external");
 			for(int i = 0; i < inExternal.length(); ++i) {
-				ctx.db.addExternal(gid, inExternal.getString(i));
+				ctx.db.addExternal(t.gid, inExternal.getString(i));
 			}
 		}
 	}

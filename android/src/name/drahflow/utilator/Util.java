@@ -47,11 +47,15 @@ class Util {
 
 	static SimpleDateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 	static SimpleDateFormat isoFullDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+	static SimpleDateFormat isoTimeFormat = new SimpleDateFormat("HH:mm:ss");
 	static public String humanDate(long time) {
 		return isoDateFormat.format(new Date(time));
 	}
 	static public String isoDate(long time) {
 		return isoDate(new Date(time));
+	}
+	static public String isoTime(long time) {
+		return isoTimeFormat.format(new Date(time));
 	}
 	static public String isoDate(Date d) {
 		return isoDateFormat.format(d);

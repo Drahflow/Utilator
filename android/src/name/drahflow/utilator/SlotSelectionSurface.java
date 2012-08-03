@@ -95,11 +95,12 @@ public class SlotSelectionSurface extends SimulationSurface {
 					task.put("status", 0);
 
 					String gid = ctx.db.createTask(task);
+					Task t = ctx.db.loadTask(gid);
 					ctx.db.touchTask(gid);
 
-					ctx.db.addLikelyhoodTime(gid, "0constant:990");
+					ctx.db.addLikelyhoodTime(t, "0constant:990");
 					ctx.db.addLikelyhoodTime(
-							gid,
+							t,
 							"2mulrange:1970-01-01T00:00:00" +
 							";" + isoFullDate(new Date(currentSelection)) +
 							";0");

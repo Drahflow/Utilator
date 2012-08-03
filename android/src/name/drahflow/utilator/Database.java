@@ -22,12 +22,12 @@ public class Database {
 		db.close();
 	}
 
-	public List<Task> loadAllTasks(String where) {
+	public List<Task> loadAllTasks(String where, String... args) {
 		List<Task> r = new ArrayList<Task>();
 
 		AbstractWindowedCursor res = (AbstractWindowedCursor)db.rawQuery(
-				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task " + where,
-				new String[] { });
+				"SELECT id, gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task " + where,
+				args);
 
 		// this actually exists to initialize the underlying CursorWindow
 		if(!res.moveToNext()) return r;
@@ -38,16 +38,17 @@ public class Database {
 		for(int row = 0; row < rows; ++row) {
 			Task t = new Task();
 
-			t.gid = data.getString(row, 0);
-			t.title = data.getString(row, 1);
-			t.description = data.getString(row, 2);
-			t.author = data.getString(row, 3);
-			t.seconds_estimate = data.getInt(row, 4);
-			t.seconds_taken = data.getInt(row, 5);
-			t.status = data.getInt(row, 6);
-			t.closed_at = data.getString(row, 7);
-			t.publication = data.getInt(row, 8);
-			t.last_edit = data.getString(row, 9);
+			t.id = data.getInt(row, 0);
+			t.gid = data.getString(row, 1);
+			t.title = data.getString(row, 2);
+			t.description = data.getString(row, 3);
+			t.author = data.getString(row, 4);
+			t.seconds_estimate = data.getInt(row, 5);
+			t.seconds_taken = data.getInt(row, 6);
+			t.status = data.getInt(row, 7);
+			t.closed_at = data.getString(row, 8);
+			t.publication = data.getInt(row, 9);
+			t.last_edit = data.getString(row, 10);
 			t.updateCachedFields();
 
 			r.add(t);
@@ -61,17 +62,18 @@ public class Database {
 		List<Task> r = new ArrayList<Task>();
 
 		Cursor res = db.rawQuery(
-				"SELECT gid, seconds_estimate, seconds_taken, status FROM task WHERE status < 100",
+				"SELECT id, gid, seconds_estimate, seconds_taken, status FROM task WHERE status < 100",
 				new String[] { });
 		String[] cols = lowerCaseArray(res.getColumnNames());
 
 		while(res.moveToNext()) {
 			Task t = new Task();
 
-			t.gid = res.getString(0);
-			t.seconds_estimate = res.getInt(1);
-			t.seconds_taken = res.getInt(2);
-			t.status = res.getInt(3);
+			t.id = res.getInt(0);
+			t.gid = res.getString(1);
+			t.seconds_estimate = res.getInt(2);
+			t.seconds_taken = res.getInt(3);
+			t.status = res.getInt(4);
 			t.updateCachedFields();
 
 			r.add(t);
@@ -162,24 +164,11 @@ public class Database {
 			return row;
 	}
 
-	public Map<String, Object> loadTask(String gid) {
-		Map<String, Object> r = new HashMap<String, Object>();
+	public Task loadTask(String gid) {
+		List<Task> res = loadAllTasks("WHERE gid = ?", gid);
+		if(res.isEmpty()) return null;
 
-		Cursor res = db.rawQuery(
-				"SELECT gid, title, description, author, seconds_estimate, seconds_taken, status, closed_at, publication, last_edit FROM task WHERE gid = ?",
-				new String[] { gid });
-		String[] cols = lowerCaseArray(res.getColumnNames());
-
-		while(res.moveToNext()) {
-			Map<String, Object> row = loadCursorRow(cols, res);
-			if(res.moveToNext()) throw new Error("duplicate GID: " + gid);
-
-			res.close();
-			return row;
-		}
-
-		res.close();
-		return null;
+		return res.get(0);
 	}
 
 	public List<Map<String, Object>> loadTaskUtilities(String gid) {
@@ -354,11 +343,11 @@ public class Database {
 		}
 	}
 
-	public void addLikelyhoodTime(String gid, String distribution) {
+	public void addLikelyhoodTime(Task t, String distribution) {
 		db.beginTransaction();
 		try {
-			db.execSQL("INSERT INTO task_likelyhood_time (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)",
-					new Object[] { gid, distribution });
+			db.execSQL("INSERT INTO task_likelyhood_time (task, distribution) VALUES (?, ?)",
+					new Object[] { t.id, distribution });
 			db.setTransactionSuccessful();
 		} finally {
 			db.endTransaction();

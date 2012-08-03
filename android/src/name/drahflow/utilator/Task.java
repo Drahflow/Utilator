@@ -3,6 +3,7 @@ package name.drahflow.utilator;
 import java.util.*;
 
 public final class Task {
+	int id;
 	String gid;
 	String title;
 	String description;

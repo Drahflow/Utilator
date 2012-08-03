@@ -43,7 +43,14 @@ class SimulationWeekSurface extends SimulationSurface {
 
 		long s = windowStart.getTime().getTime();
 		long e = s + 86400 * 1000 * 7;
+
+		final Paint smallFont = new Paint(PRIMARY_COLOR);
+		smallFont.setTextSize(8);
 		Task last = null;
+		int lastTy = -1;
+		float lastImportance = -1;
+		int labelOffsetY = 0;
+
 		for(int j = 0; j < scheduleTime.size() - 1; ++j) {
 			long ts = scheduleTime.get(j);
 			long te = scheduleTime.get(j + 1);
@@ -55,6 +62,25 @@ class SimulationWeekSurface extends SimulationSurface {
 			if(xe < xs) xe = getWidth();
 
 			c.drawRect(xs, ty + 20 - 12l * (importance.get(j) - minImportance) / importanceDifference, xe, ty + 24, taskColor);
+
+			if(last != schedule.get(j)) {
+				if(importance.get(j) > lastImportance) {
+					if(ty == lastTy) {
+						labelOffsetY = labelOffsetY + 10;
+
+						c.drawText(isoTime(ts), 100, ty - 5 + labelOffsetY, smallFont);
+						c.drawText(schedule.get(j).title, 130, ty - 5 + labelOffsetY, smallFont);
+					} else {
+						labelOffsetY = -10;
+					}
+
+					lastTy = ty;
+				}
+
+				lastImportance = importance.get(j);
+			}
+
+			last = schedule.get(j);
 		}
 
 		if(currentSelection != null) {
