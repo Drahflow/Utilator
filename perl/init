@@ -71,6 +71,31 @@ CREATE INDEX task_likelyhood_space_idx ON task_likelyhood_space (task);
 EOSQL
 
 dbh()->do(<<EOSQL);
+CREATE TABLE space_active (
+  id INTEGER PRIMARY KEY,
+  dimension TEXT NOT NULL,
+  name TEXT NOT NULL,
+  reached_at TEXT NOT NULL
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX space_active_name_idx ON space_active (name);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE TABLE space_topology (
+  wherefrom INTEGER NOT NULL,
+  whereto INTEGER NOT NULL,
+  seconds_estimate INTEGER NOT NULL
+);
+EOSQL
+
+dbh()->do(<<EOSQL);
+CREATE INDEX space_topology_idx ON space_topology (wherefrom, whereto);
+EOSQL
+
+dbh()->do(<<EOSQL);
 CREATE TABLE task_precondition (
   id INTEGER PRIMARY KEY,
   task INTEGER REFERENCES task (id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,

@@ -9,9 +9,12 @@ use warnings;
 
 use Global qw(/./);
 use Date::Format;
+use Date::Parse;
+use Data::Dumper;
 
 my %utility;
 my %likelyhood_time;
+my %likelyhood_space;
 
 sub resolveTask($) {
   my ($task) = (@_);
@@ -93,6 +96,13 @@ EOSQL
     push @{$likelyhood_time{$l->{'task'}}}, $l->{'distribution'};
   }
 
+  my @likelyhood_space = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })};
+  SELECT l.distribution, l.task FROM task_likelyhood_space l JOIN task t ON t.id = l.task WHERE t.status < 100
+EOSQL
+  foreach my $l (@likelyhood_space) {
+    push @{$likelyhood_space{$l->{'task'}}}, $l->{'distribution'};
+  }
+
   my @tasks;
   if($all) {
     @tasks = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })};
@@ -163,8 +173,9 @@ sub evaluate_utility {
 
     my $utility = evaluate_time_distribution($now, 0, ($utility{$task->{'id'}} or []));
     my $likelyhood_time = evaluate_time_distribution($now, 990, ($likelyhood_time{$task->{'id'}} or []));
+    my $movement_time = evaluate_space_movement($now, ($likelyhood_space{$task->{'id'}} or []));
 
-    $task->{'current_utility'} = $utility * $likelyhood_time / $time_estimate / 1000000;
+    $task->{'current_utility'} = $utility * $likelyhood_time / ($time_estimate + $movement_time) / 1000000;
   }
   
   return $task;
@@ -189,6 +200,80 @@ sub evaluate_time_distribution {
   }
 
   return $value;
+}
+
+my $space_active_by_dimension;
+my $space_by_name;
+my $space_topology;
+
+sub evaluate_space_movement {
+  my ($time, $spec) = @_;
+
+  unless($space_topology) {
+    fetch_space_topology();
+  }
+
+  unless($space_active_by_dimension and $space_by_name) {
+    fetch_space($time);
+  }
+
+  my $max = 0;
+
+  foreach my $location (@$spec) {
+    unless($space_by_name->{$location}) {
+      die "No space definition for location '$location'";
+      next;
+    }
+
+    my $to = $space_by_name->{$location}->{'id'};
+    my $currentLocation = $space_active_by_dimension->{$space_by_name->{$location}->{'dimension'}};
+    my $from = defined $currentLocation? $currentLocation->{'id'}: -1;
+
+    my $time = 0;
+
+    if(exists $space_topology->{$to}->{$from}) {
+      $time = $space_topology->{$to}->{$from};
+    } elsif(exists $space_topology->{$to}->{-1}) {
+      $time = $space_topology->{$to}->{-1};
+    }
+
+    if($time > $max) {
+      $max = $time;
+    }
+  }
+
+  return $max;
+}
+
+sub fetch_space_topology {
+  $space_topology = {};
+
+  foreach my $row (@{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })}) {
+  SELECT * FROM space_topology
+EOSQL
+    $space_topology->{$row->{'whereto'}}->{$row->{'wherefrom'}} = $row->{'seconds_estimate'};
+  }
+}
+
+sub fetch_space {
+  my ($time) = @_;
+
+  my $cutoff = iso_full_date(str2time($time) - 600);
+
+  $space_active_by_dimension = {};
+  $space_by_name = {};
+
+  foreach my $row (@{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $cutoff)}) {
+  SELECT * FROM space_active WHERE reached_at > ? ORDER BY reached_at ASC
+EOSQL
+    $space_active_by_dimension->{$row->{'dimension'}} = $row;
+  }
+
+  foreach my $row (@{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })}) {
+  SELECT * FROM space_active
+EOSQL
+    $space_by_name->{$row->{'name'}} = $row;
+  }
 }
 
 1;

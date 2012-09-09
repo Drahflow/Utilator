@@ -18,6 +18,7 @@ if($opts =~ /(\d+[smhdw])/) {
 }
 my $gid = $opts =~ /g/;
 my $now = iso_full_date(time);
+
 my @tasks = Query::sortedTasks($now);
 
 if($maxTime) {

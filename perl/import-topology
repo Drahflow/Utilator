@@ -1,0 +1,77 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Date::Parse qw(str2time);
+use Date::Format qw(time2str);
+use Data::Dumper;
+
+use Global qw(/./);
+
+my $maxDuration = 999999999;
+
+dbh()->do(<<EOSQL, {});
+DELETE FROM space_topology;
+EOSQL
+
+dbh()->do(<<EOSQL, {});
+DELETE FROM space_active;
+EOSQL
+
+die help() unless $ARGV[0];
+
+open FILE, '<:utf8', "$ARGV[0]" or die "cannot open $ARGV[0]: $!";
+while(my $line = <FILE>) {
+  chomp $line;
+
+  next if($line =~ /^\s*$/);
+
+  unless($line =~ /^(.*): (.*) -> (.*) \((\d+\s*[smhdw])\)$/) {
+    die "cannot parse line: $line";
+  }
+
+  my ($dimension, $from, $to, $duration) = ($1, $2, $3, $4);
+
+  my ($toId) = map { $_->{'id'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $to)};
+  SELECT id FROM space_active WHERE name = ?
+EOSQL
+  my ($fromId) = map { $_->{'id'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $from)};
+  SELECT id FROM space_active WHERE name = ?
+EOSQL
+
+  unless(defined $toId) {
+    dbh()->do(<<EOSQL, {}, $dimension, $to);
+    INSERT INTO space_active (dimension, name, reached_at) VALUES (?, ?, '1970-01-01');
+EOSQL
+    ($toId) = map { $_->{'id'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $to)};
+    SELECT id FROM space_active WHERE name = ?
+EOSQL
+  }
+
+  unless(defined $fromId) {
+    if($from eq '*') {
+      $fromId = -1;
+    } else {
+      dbh()->do(<<EOSQL, {}, $dimension, $from);
+      INSERT INTO space_active (dimension, name, reached_at) VALUES (?, ?, '1970-01-01');
+EOSQL
+      ($fromId) = map { $_->{'id'} } @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $from)};
+      SELECT id FROM space_active WHERE name = ?
+EOSQL
+    }
+  }
+
+  dbh()->do(<<EOSQL, {}, $fromId, $toId, interpretUnit($duration));
+  INSERT INTO space_topology (wherefrom, whereto, seconds_estimate) VALUES (?, ?, ?);
+EOSQL
+}
+close FILE;
+
+sub help {
+  return <<EOTXT
+./import-topology <file>
+EOTXT
+}
+

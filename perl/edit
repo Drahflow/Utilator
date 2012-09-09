@@ -20,6 +20,9 @@ if($what eq 'done') {
   dbh()->do(<<EOSQL, {}, $now, $now, $gid);
   UPDATE task SET status = 100, last_edit = ?, closed_at = ? WHERE gid = ?
 EOSQL
+  enterLocations();
+} elsif($what eq 'enter') {
+  enterLocations();
 } elsif($what eq 'status') {
   my $new = $ARGV[2];
   die help() unless defined $new;
@@ -75,6 +78,20 @@ EOSQL
 } elsif($what eq 'wait') {
   my $delta = $ARGV[2] or die help();
   enwaitTask($task, time + interpretUnitExact($delta));
+} elsif($what eq 'loc') {
+  my @rows = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $ARGV[2])};
+  SELECT * FROM space_active WHERE name = ?
+EOSQL
+  die "no such location '$ARGV[2]'" unless @rows;
+
+  dbh()->do(<<EOSQL, {}, $gid, $ARGV[2]);
+  DELETE FROM task_likelyhood_space
+  WHERE task = (SELECT id FROM task WHERE gid = ?)
+    AND distribution IN (SELECT name FROM space_active WHERE dimension = (SELECT dimension FROM space_active WHERE name = ?))
+EOSQL
+  dbh()->do(<<EOSQL, {}, $gid, $ARGV[2]);
+  INSERT INTO task_likelyhood_space (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
 } else {
   die help();
 }
@@ -88,12 +105,14 @@ sub help {
   return <<EOTXT
 ./edit <task gid / 'c'> <...>
   done              - complete task
+  enter             - enter all locations associated with task
   wait <time>       - task impossible for the next <time>
   wait_until <date> - task impossible until specified <date>
   est <time>        - set new time estimate
   title <title>     - set new title
   util <utility>    - set new (constant) utility
   pub [L|P|M|T|O]   - set new publication state: Local, Private, Masked, Transparent, Offer
+  loc <location>    - adds a location dependency, only one per dimension
 EOTXT
 }
 
@@ -117,4 +136,14 @@ EOSQL
   dbh()->do(<<EOSQL, {}, $now, $gid);
   UPDATE task SET last_edit = ? WHERE gid = ?
 EOSQL
+}
+
+sub enterLocations {
+  foreach my $row (@{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid)}) {
+  SELECT l.distribution, l.task FROM task_likelyhood_space l JOIN task t ON t.id = l.task WHERE t.gid = ?
+EOSQL
+    dbh()->do(<<EOSQL, {}, $now, $row->{'distribution'});
+    UPDATE space_active SET reached_at = ? WHERE name = ?
+EOSQL
+  }
 }
