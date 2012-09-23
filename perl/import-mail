@@ -24,6 +24,7 @@ my $estimatedUtility = 0;
 
 my @INBOXEN = (
   "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/pop.gmx.net/Inbox",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/pop.gmx.net/Inbox.sbd/Aktive-NDS",
   "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/mail.ips.cs.tu-bs.de/Inbox",
   "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.tu-bs.de/INBOX",
   "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/iserv.hvf-bs.net/INBOX",
@@ -35,6 +36,8 @@ my @INBOXEN = (
 
 foreach my $inbox (@INBOXEN) {
   open INBOX, '<:raw', $inbox or die "cannot open $inbox: $!";
+  my $inboxBaseUtility = Secrets::importMailBaseUtilByInbox($inbox);
+
   while(my $line = <INBOX>) {
     chomp $line;
 
@@ -77,7 +80,7 @@ foreach my $inbox (@INBOXEN) {
           $estimatedUtility += 10;
           $estimatedTime += 60;
         } else {
-          $estimatedUtility += 5;
+          $estimatedUtility += $inboxBaseUtility;
           $estimatedTime += 10;
         }
 
