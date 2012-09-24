@@ -80,6 +80,7 @@ your attention strays, you can always look up what you should be working on. It
 will become a habit.
 
 As I use wmii, my wmiirc includes this snippet
+
     # Status Bar Info
     status() {
             echo -n $(cd /home/drahflow/utilator/perl && query 1 | iconv -f utf-8 -t iso8859-15 | cut -c 1-100)
