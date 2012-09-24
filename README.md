@@ -31,23 +31,23 @@ with the rest of the system.
 
 ### init
 
- init
+    init
 
 Initializes the local database. Execute this once.
 
 ### create
 
- create 'Understand the tutorial' 2.3 30m
-        1111111111111111111111111 222 333
- 
- 1: title of the new task
- 2: the estimated utility of the task completion
- 3: the amount of time you will need to complete the task
-    5s: five seconds
-    5m: five minutes
-    5h: five hours
-    5d: five days (not 120h, as you'll not work 24h days)
-    5w: five weeks (not 35d, as you'll not work 7d weeks)
+    create 'Understand the tutorial' 2.3 30m
+           1111111111111111111111111 222 333
+    
+    1: title of the new task
+    2: the estimated utility of the task completion
+    3: the amount of time you will need to complete the task
+       5s: five seconds
+       5m: five minutes
+       5h: five hours
+       5d: five days (not 120h, as you'll not work 24h days)
+       5w: five weeks (not 35d, as you'll not work 7d weeks)
 
 This command will spew forth the GUID of the new task.
 
@@ -61,41 +61,41 @@ together with the create-frommail script to get me a mail-to-task button.
 
 ### query
 
- query
+    query
 
 This will just dump an ordered list of tasks
 
- query 3 5m
-       1 22
- 
- 1: the maximal number of tasks to show (highest utility per time first)
- 2: the maximal time of the task, useful if you need to go soon
+    query 3 5m
+          1 22
+    
+    1: the maximal number of tasks to show (highest utility per time first)
+    2: the maximal time of the task, useful if you need to go soon
 
 #### Installation
 
 To make this really useful, it makes sense to display the result of
- query 1
+    query 1
 somewhere on the screen continually (or at least after a single hotkey). Then if
 your attention strays, you can always look up what you should be working on. It
 will become a habit.
 
 As I use wmii, my wmiirc includes this snippet
- # Status Bar Info
- status() {
-         echo -n $(cd /home/drahflow/utilator/perl && query 1 | iconv -f utf-8 -t iso8859-15 | cut -c 1-100)
- }
+    # Status Bar Info
+    status() {
+            echo -n $(cd /home/drahflow/utilator/perl && query 1 | iconv -f utf-8 -t iso8859-15 | cut -c 1-100)
+    }
 
 ### dump
 
- dump CB5BE551-C5C3-4884-B3D7-CC4FC761061C
-      111111111111111111111111111111111111
- 
- 1: task specification
-    XXXXXXXX-XXXX-4XXX-XXXX-XXXXXXXXXXXX: the task identified by this GUID
-    c: the currently most important task (i.e. you will nearly always use 'dump c')
-    l: the task last edited or created (useful if you created a task but it did not become highest priority)
-    /regex/: the single task matching regex, errors out if multiple tasks are matched
-    /regex/a: as /regex/, but also match against completed tasks (if you accidentally marked a task complete)
+    dump CB5BE551-C5C3-4884-B3D7-CC4FC761061C
+         111111111111111111111111111111111111
+    
+    1: task specification
+       XXXXXXXX-XXXX-4XXX-XXXX-XXXXXXXXXXXX: the task identified by this GUID
+       c: the currently most important task (i.e. you will nearly always use 'dump c')
+       l: the task last edited or created (useful if you created a task but it did not become highest priority)
+       /regex/: the single task matching regex, errors out if multiple tasks are matched
+       /regex/a: as /regex/, but also match against completed tasks (if you accidentally marked a task complete)
 
 This dumps the current task status.
 
@@ -103,37 +103,37 @@ This dumps the current task status.
 
 Task adressing and time intervals are specifed just as before.
 
- edit CB5BE551-C5C3-4884-B3D7-CC4FC761061C done
+    edit CB5BE551-C5C3-4884-B3D7-CC4FC761061C done
 
 Marks the specified task done.
 
- edit c status 50
+    edit c status 50
 
 Marks the current task 50% done.
 
- edit l status 0
+    edit l status 0
 
 Marks the last edited task 0% done (if you accidentally completed it).
 
- edit c wait 5m
+    edit c wait 5m
 
 Marks the task as impossible-to-act-upon for 5 minutes. Use this only if the external world makes it
 impossible for you to complete the task, say because the task says 'buy butter', but it's 4 AM. Time
 intervals are not corrected for non-work-time, i.e. 1d is 24h in this command.
 
- edit c wait_until 2030-01-01T05:00:00
+    edit c wait_until 2030-01-01T05:00:00
 
 Marks the task as impossible-to-act-upon until the specified date.
 
- edit c est 5h
+    edit c est 5h
 
 Set a new time estimate.
 
- edit c title 'Make up a better title for this task.'
+    edit c title 'Make up a better title for this task.'
 
 Set a new title.
 
- edit c util 0.5
+    edit c util 0.5
 
 Set a new utility.
 
@@ -141,17 +141,17 @@ Set a new utility.
 
 It makes sense to integrate some of these commands into global hotkeys. I only mapped 'edit c done',
 again via wmii:
- Key $MODKEY-Shift-d # Mark current task done
-     (cd ~/utilator/perl && ./edit c done)
+    Key $MODKEY-Shift-d # Mark current task done
+        (cd ~/utilator/perl && ./edit c done)
 
 ### act / act-context
 
- act c
+    act c
 
 This script tries to switch your computer into a state most helpful in working on the specified task
 (which should always be 'c').
 
- act-context c
+    act-context c
 
 This script tries to classify some of my window contexts on whether they facilitate the execution of
 the specified task. Highly wmii specific.
