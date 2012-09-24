@@ -36,6 +36,6 @@ print "$gid\n";
 
 sub help {
   return <<EOTXT
-create_task <title> <utility> <time estimate>
+create <title> <utility> <time estimate>
 EOTXT
 }

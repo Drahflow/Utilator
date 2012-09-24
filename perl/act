@@ -32,3 +32,12 @@ if(defined $url) {
   system("iceweasel '$url'");
   system("wmiir xwrite /ctl view 'www'");
 }
+
+sub help {
+  return <<EOTXT
+./act <task gid / 'c'>
+
+Tries to switch computer context into helpful state for the task.
+EOTXT
+}
+

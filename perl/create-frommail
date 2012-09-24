@@ -1,0 +1,10 @@
+#!/bin/zsh
+
+file="$1"
+subject="$(grep Subject: "$file" | head -n 1 | sed -e 's/.*: *//' | tr -d "\r\n")"
+todospec="$(zenity --entry --text="Bearbeite '${subject}' <util>, <time>")"
+if [ "$todospec" != "" ]; then
+  u="$(echo $todospec | sed -e 's/,.*//g')"
+  t="$(echo $todospec | sed -e 's/.*, *//g')"
+  zenity --info --text="$(cd /home/drahflow/utilator/perl && ./create "Mail '${subject}' bearbeiten" "$u" "$t" 2>&1)"
+fi
