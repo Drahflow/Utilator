@@ -28,8 +28,8 @@ public class Synchronization {
 			HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
 			try {
 				urlConnection.setDoOutput(true);
-				urlConnection.setChunkedStreamingMode(0);
-
+				urlConnection.setDoInput(true);
+				
 				urlConnection.getOutputStream().write(out.toByteArray());
 
 				InputStream in = new BufferedInputStream(urlConnection.getInputStream());
