@@ -2,7 +2,7 @@ package Global;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(dbh create_gid iso_date iso_full_date interpretUnit interpretUnitExact reverseInterpretUnit PUBLICATION_LOCAL PUBLICATION_PRIVATE PUBLICATION_MASKED PUBLICATION_TRANSPARENCY PUBLICATION_OFFER);
+@EXPORT_OK = qw(dbh create_gid iso_date iso_full_date interpretUnit interpretUnitExact reverseInterpretUnit PUBLICATION_LOCAL PUBLICATION_PRIVATE PUBLICATION_MASKED PUBLICATION_TRANSPARENCY PUBLICATION_OFFER space_by_name);
 
 use strict;
 use warnings;
@@ -90,6 +90,22 @@ sub reverseInterpretUnit($) {
     return $time / 60 / 60 / 10 / 5 / 52 . "y";
   }     
 } 
+
+my $space_by_name;
+
+sub space_by_name() {
+  return $space_by_name if($space_by_name);
+
+  $space_by_name = {};
+
+  foreach my $row (@{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })}) {
+  SELECT * FROM space_active
+EOSQL
+    $space_by_name->{$row->{'name'}} = $row;
+  }
+
+  return $space_by_name;
+}
 
 use constant PUBLICATION_LOCAL => 0;
 use constant PUBLICATION_PRIVATE => 1;

@@ -11,6 +11,7 @@ use Global qw(/./);
 use Date::Format;
 use Date::Parse;
 use Data::Dumper;
+use Secrets;
 
 my %utility;
 my %likelyhood_time;
@@ -203,7 +204,6 @@ sub evaluate_time_distribution {
 }
 
 my $space_active_by_dimension;
-my $space_by_name;
 my $space_topology;
 
 sub evaluate_space_movement {
@@ -213,20 +213,20 @@ sub evaluate_space_movement {
     fetch_space_topology();
   }
 
-  unless($space_active_by_dimension and $space_by_name) {
-    fetch_space($time);
+  unless($space_active_by_dimension) {
+    fetch_space_active($time);
   }
 
   my $max = 0;
 
   foreach my $location (@$spec) {
-    unless($space_by_name->{$location}) {
+    unless(space_by_name()->{$location}) {
       die "No space definition for location '$location'";
       next;
     }
 
-    my $to = $space_by_name->{$location}->{'id'};
-    my $currentLocation = $space_active_by_dimension->{$space_by_name->{$location}->{'dimension'}};
+    my $to = space_by_name()->{$location}->{'id'};
+    my $currentLocation = $space_active_by_dimension->{space_by_name()->{$location}->{'dimension'}};
     my $from = defined $currentLocation? $currentLocation->{'id'}: -1;
 
     my $time = 0;
@@ -255,24 +255,17 @@ EOSQL
   }
 }
 
-sub fetch_space {
+sub fetch_space_active {
   my ($time) = @_;
 
   my $cutoff = iso_full_date(str2time($time) - 600);
 
-  $space_active_by_dimension = {};
-  $space_by_name = {};
+  $space_active_by_dimension = Secrets::activeSpaceBySchedule();
 
   foreach my $row (@{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $cutoff)}) {
   SELECT * FROM space_active WHERE reached_at > ? ORDER BY reached_at ASC
 EOSQL
     $space_active_by_dimension->{$row->{'dimension'}} = $row;
-  }
-
-  foreach my $row (@{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })}) {
-  SELECT * FROM space_active
-EOSQL
-    $space_by_name->{$row->{'name'}} = $row;
   }
 }
 
