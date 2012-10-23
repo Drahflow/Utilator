@@ -8,6 +8,11 @@ use Global qw(/./);
 use Query qw(/./);
 use Data::Dumper;
 
+if($ARGV[0] eq 'loc') {
+  print Dumper(fetch_space_active(iso_full_date(time)));
+  exit 0;
+}
+
 my $maxCount = 999999;
 $maxCount = $ARGV[0] if(defined $ARGV[0]);
 my $opts = ($ARGV[1] or '');
