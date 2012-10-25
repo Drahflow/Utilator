@@ -122,7 +122,7 @@ public class Synchronization {
 			return;
 		}
 
-		//Log.i("Utilator", "JSON received: " + json);
+		// Log.i("Utilator", "JSON received: " + json);
 
 		JSONObject inRoot = (JSONObject)new JSONTokener(json.toString()).nextValue();
 		String error = (String)inRoot.opt("error");
@@ -138,17 +138,20 @@ public class Synchronization {
 			JSONObject inTask = inTasks.getJSONObject(i);
 			Task task = ctx.db.loadTask(inTask.getString("gid"));
 
-			Log.i("Utilator", "Considering Task: " + inTask.getString("title"));
+			// Log.i("Utilator", "Considering Task: " + inTask.getString("title"));
 
 			if(task == null) {
 				ctx.db.createEmptyTask(inTask.getString("gid"));
 				writeTask(inTask);
 			} else if(task.last_edit == null) {
-				Log.i("Utilator", "Task written, last_edit == null: " + task.title);
+				// Log.i("Utilator", "Task written, last_edit == null: " + task.title);
 				writeTask(inTask);
 			} else if(task.last_edit.compareTo(inTask.getString("last_edit")) < 0) {
-				Log.i("Utilator", "Task written, last_edit newer: " + task.title);
+				// Log.i("Utilator", "Task written, last_edit newer: " + task.title);
 				writeTask(inTask);
+			} else {
+				// Log.i("Utilator", "Task unchanged, local last_edit: " + task.last_edit +
+				// 		", remote last_edit: " + inTask.getString("last_edit"));
 			}
 		}
 

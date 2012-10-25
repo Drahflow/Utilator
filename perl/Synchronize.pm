@@ -77,7 +77,7 @@ EOSQL
       $localChangedTasks{$gid} = $inTasks{$gid};
     } else {
       $syncedTasks{$gid} = $tasks{$gid};
-      $remoteChangedTasks{$gid} = $inTasks{$gid};
+      $remoteChangedTasks{$gid} = $tasks{$gid};
     }
   }
 
