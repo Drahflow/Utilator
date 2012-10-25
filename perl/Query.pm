@@ -2,7 +2,7 @@ package Query;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(sortedTasks);
+@EXPORT_OK = qw(sortedTasks fetch_space_active);
 
 use strict;
 use warnings;
@@ -267,6 +267,8 @@ sub fetch_space_active {
 EOSQL
     $space_active_by_dimension->{$row->{'dimension'}} = $row;
   }
+
+  return $space_active_by_dimension;
 }
 
 1;
