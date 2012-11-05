@@ -35,6 +35,10 @@ my %utilities = (
   'ratbs.Sofort' => 10,
 );
 
+my %locations = (
+  'ratbs' => ['slice_pirates'],
+);
+
 my $project = $ARGV[0] or die help();
 my $base = $names{$project};
 my $externalBase = 'redmine://' . [$base =~ m!^https://(.*)$!]->[0];
@@ -113,6 +117,19 @@ EOSQL
       $utility = 4;
     }
 
+    my @validLocations;
+    foreach my $loc (@{$locations{$project}}) {
+      my @rows = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $loc)};
+      SELECT * FROM space_active WHERE name = ?
+EOSQL
+      if(@rows) {
+        push @validLocations, $loc;
+      } else {
+        $title .= "Utilator: Redmine-Locations definition needs to be fixed: $loc";
+        $seconds_estimate = 60;
+      }
+    }
+
     print "Creating task for " . $issue->{'subject'} . "\n";
 
     dbh()->do(<<EOSQL, {}, $gid, $author, $title, $seconds_estimate, 0, $status, $publication, $now);
@@ -130,6 +147,12 @@ EOSQL
     dbh()->do(<<EOSQL, {}, $id, $externalBase . "/issues/" . $issue->{'id'});
 INSERT INTO task_external (task, external) VALUES (?, ?)
 EOSQL
+
+    foreach my $loc (@validLocations) {
+      dbh()->do(<<EOSQL, {}, $gid, $loc);
+      INSERT INTO task_likelyhood_space (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+    }
   }
 } else {
   die help();

@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Global qw(/./);
+use Query qw(/./);
+use Data::Dumper;
+use Date::Parse;
+
+my $what = $ARGV[0] or die help();
+my $where = $ARGV[1] or die help();
+
+my $now = iso_full_date(time);
+
+unless(@{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $where)}) {
+  SELECT * FROM space_active WHERE name = ?
+EOSQL
+  die "Unknown location: $where";
+}
+
+if($what eq 'enter') {
+  dbh()->do(<<EOSQL, {}, $now, $where);
+  UPDATE space_active SET reached_at = ? WHERE name = ?
+EOSQL
+} elsif($what eq 'leave') {
+  dbh()->do(<<EOSQL, {}, '1970-01-01', $where);
+  UPDATE space_active SET reached_at = ? WHERE name = ?
+EOSQL
+} else {
+  die help();
+}
+
+sub help {
+  return <<EOTXT
+./move [enter/leave] <location>
+EOTXT
+}
