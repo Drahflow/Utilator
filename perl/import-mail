@@ -44,50 +44,40 @@ foreach my $inbox (@INBOXEN) {
       $toMe = 0;
       $state = 1;
       $extraUtility = 0;
-    }
-
-    if($state == 3 and $line =~ /^\t(.*)$/) {
+    } elsif($state == 2 and $line =~ /^\t(.*)$/) {
       $subject .= $1;
-    } elsif($state == 1 or $state == 3) {
+    } elsif($state == 1 or $state == 2) {
       $state = 1;
 
       if($line =~ /^$/) {
-        $state = 2;
+        if(not $seen) {
+          # print "Subject: $subject\n";
+          ++$unreadCount;
+
+          if($toMe) {
+            $estimatedUtility += 10;
+            $estimatedTime += 60;
+          } else {
+            $estimatedUtility += $inboxBaseUtility;
+            $estimatedTime += 10;
+          }
+
+          if($extraUtility) {
+            $estimatedUtility += $extraUtility;
+          }
+        }
+
+        $state = 0;
       } elsif($line =~ /^Subject: (.*)$/) {
         $subject = $1;
-        $state = 3;
-      } elsif($line =~ /^(To|CC): .*drahflow.*/) {
-        $toMe = 1;
-      } elsif($line =~ /^(To|CC): jens\@quuxlogic.com/) {
-        $toMe = 1;
-      } elsif($line =~ /^(To|CC): .*schicke.*/) {
+        $state = 2;
+      } elsif($line =~ /^(To|CC): (.*(drahflow|schicke).*|jens\@quuxLogic.com)/) {
         $toMe = 1;
       } elsif($line =~ /^From: ([^<]*)$/) {
         $extraUtility = Secrets::importMailExtraUtilBySender($1);
       } elsif($line =~ /^From: .* <(.*)>$/) {
         $extraUtility = Secrets::importMailExtraUtilBySender($1);
       }
-    }
-
-    if($state == 2 or $state == 3 and $line =~ /^$/) {
-      if(not $seen) {
-        # print "Subject: $subject\n";
-        ++$unreadCount;
-
-        if($toMe) {
-          $estimatedUtility += 10;
-          $estimatedTime += 60;
-        } else {
-          $estimatedUtility += $inboxBaseUtility;
-          $estimatedTime += 10;
-        }
-
-        if($extraUtility) {
-          $estimatedUtility += $extraUtility;
-        }
-      }
-
-      $state = 0;
     }
   }
   close INBOX;
