@@ -39,8 +39,6 @@ foreach my $inbox (@INBOXEN) {
   my $inboxBaseUtility = Secrets::importMailBaseUtilByInbox($inbox);
 
   while(my $line = <INBOX>) {
-    chomp $line;
-
     if($line =~ /^X-Mozilla-Status: ...(.)$/) {
       $seen = $1;
       $toMe = 0;
@@ -99,35 +97,41 @@ print "Unread: " . $unreadCount . "\n";
 print "Estimated utility: " . ($estimatedUtility / 1000.0) . "\n";
 print "Estimated time: " . $estimatedTime . "s\n";
 
-my $author = 'mailto://drahflow@gmx.de';
-my $title = 'Read mails';
-my $publication = PUBLICATION_PRIVATE;
-my $now = iso_full_date(time);
+createTask('Read mails', $estimatedUtility, $estimatedTime);
+createTask('Read important mails', $extraUtility, 120);
 
-my $gid = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $title)->[0]->{'gid'};
-SELECT gid FROM task WHERE title = ? AND status < 100
-EOSQL
+sub createTask {
+  my ($title, $estimatedUtility, $estimatedTime) = @_;
 
-if(defined $gid) {
-  dbh()->do(<<EOSQL, {}, $gid);
-  DELETE FROM task_utility WHERE task = (SELECT id FROM task WHERE gid = ?)
-EOSQL
-  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
-  INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
-EOSQL
-  dbh()->do(<<EOSQL, {}, $estimatedTime, $now, $gid);
-  UPDATE task SET seconds_estimate = ?, last_edit = ? WHERE gid = ?
+  my $author = 'mailto://drahflow@gmx.de';
+  my $publication = PUBLICATION_PRIVATE;
+  my $now = iso_full_date(time);
+
+  my $gid = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $title)->[0]->{'gid'};
+  SELECT gid FROM task WHERE title = ? AND status < 100
 EOSQL
 
-  print "edited: $gid\n";
-} else {
-  $gid = create_gid();
-  dbh()->do(<<EOSQL, {}, $gid, $author, $title, $estimatedTime, 0, 0, $publication, $now);
-  INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  if(defined $gid) {
+    dbh()->do(<<EOSQL, {}, $gid);
+    DELETE FROM task_utility WHERE task = (SELECT id FROM task WHERE gid = ?)
 EOSQL
-  dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
-  INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+    dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
+    INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+    dbh()->do(<<EOSQL, {}, $estimatedTime, $now, $gid);
+    UPDATE task SET seconds_estimate = ?, last_edit = ? WHERE gid = ?
 EOSQL
 
-  print "created: $gid\n";
+    print "edited: $gid\n";
+  } else {
+    $gid = create_gid();
+    dbh()->do(<<EOSQL, {}, $gid, $author, $title, $estimatedTime, 0, 0, $publication, $now);
+    INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+EOSQL
+    dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
+    INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+
+    print "created: $gid\n";
+  }
 }
