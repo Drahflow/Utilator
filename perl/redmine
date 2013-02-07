@@ -13,7 +13,7 @@ use Secrets;
 use XML::Simple;
 use Data::Dumper;
 
-# this is just for the really paranoid: hardcode the valid certificates, so rouge CAs don't concern us
+# this is just for the paranoid: hardcode the valid certificates, so rouge CAs don't concern us
 my %goodCerts = (
   'e0afa607ec8264ab8134043672aa7c2bb617d4160cec998cbf9597ce759b1f9b4fe84c811ac6f2b5fc9590142ee6fe8812a936ce506d5d305d979ec275f15295' => 1,
   '4edf1edc86fb5a2d25a3e4891a14f7981529ad5052185a7d81d7700d847c2a1d74cee8c8731c1c335b85b8b8dda8b81ad03e1d1754271cbcff647c5b110f9907' => 1,
@@ -83,75 +83,111 @@ if($action eq "pull") {
     SELECT * FROM task t WHERE EXISTS (SELECT 1 FROM task_external e WHERE e.task = t.id AND e.external = ?) AND t.status < 100
 EOSQL
 
-    next if(@tasks);
+    if(@tasks) {
+      my $task = $tasks[0];
 
-    my $issueId = $issue->{'id'};
-    my $xmlDetail = XMLin(http('GET' => "$base/issues/$issueId.xml?key=$key&include=children"));
-    next if($xmlDetail->{'children'});
+      next if $task->{'last_edit'} ge $issue->{'updated_on'};
 
-    my $gid = create_gid();
-    my $author = $issue->{'author'}->{'name'};
-    my $title = "Redmine-Ticket '$issue->{'subject'}' bearbeiten";
-    my $utility = $utilities{$project . '.' . $issue->{'priority'}->{'name'}};
-    my $seconds_estimate = (ref $issue->{'estimated_hours'} ne 'HASH')? $issue->{'estimated_hours'} * 3600: undef;
-    my $publication = PUBLICATION_PRIVATE;
-    my $status = $issue->{'done_ratio'};
+      my $title = $task->{'title'};
+      my $utility = $utilities{$project . '.' . $issue->{'priority'}->{'name'}};
+      my $seconds_estimate = (ref $issue->{'estimated_hours'} ne 'HASH')? $issue->{'estimated_hours'} * 3600: undef;
+      my $status = $issue->{'done_ratio'};
 
-    next if $status == 100;
+      if($status < 0 or $status >= 100) {
+        $status = 0;
+      }
 
-    if($status < 0 or $status >= 100) {
-      $status = 0;
-    }
-
-    if(not defined $seconds_estimate) {
-      $title .= ': Zeitschätzung';
-      $seconds_estimate = 60;
-    }
-    if(not defined $issue->{'assigned_to'}) {
-      $title .= ': Zuweisen';
-      $seconds_estimate = 60;
-    }
-
-    if(not defined $utility) {
-      $title = "Utilator: Redmine-Utility-Definition für '" . $project . '.' . $issue->{'priority'}->{'name'} ."' fixen.";
-      $utility = 4;
-    }
-
-    my @validLocations;
-    foreach my $loc (@{$locations{$project}}) {
-      my @rows = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $loc)};
-      SELECT * FROM space_active WHERE name = ?
-EOSQL
-      if(@rows) {
-        push @validLocations, $loc;
-      } else {
-        $title .= "Utilator: Redmine-Locations definition needs to be fixed: $loc";
+      if(not defined $seconds_estimate) {
+        $title .= ': Zeitschätzung';
         $seconds_estimate = 60;
       }
-    }
 
-    print "Creating task for " . $issue->{'subject'} . "\n";
+      if(not defined $utility) {
+        $title = "Utilator: Redmine-Utility-Definition für '" . $project . '.' . $issue->{'priority'}->{'name'} ."' fixen.";
+        $utility = 4;
+      }
 
-    dbh()->do(<<EOSQL, {}, $gid, $author, $title, $seconds_estimate, 0, $status, $publication, $now);
-INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      print "Updating task for " . $issue->{'subject'} . "\n";
+
+      dbh()->do(<<EOSQL, {}, $title, $seconds_estimate, $status, $now, $task->{'gid'});
+        UPDATE task SET title = ?, seconds_estimate = ?, status = ?, last_edit = ? WHERE gid = ?
 EOSQL
 
-    my $id = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid)->[0]->{'id'};
-SELECT id FROM task WHERE gid = ?
+      dbh()->do(<<EOSQL, {}, $task->{'id'});
+        DELETE FROM task_utility WHERE task = ?
+EOSQL
+      dbh()->do(<<EOSQL, {}, $task->{'id'}, "0constant:" . int($utility * 1000));
+        INSERT INTO task_utility (task, distribution) VALUES (?, ?)
+EOSQL
+    } else {
+      my $issueId = $issue->{'id'};
+      my $xmlDetail = XMLin(http('GET' => "$base/issues/$issueId.xml?key=$key&include=children"));
+      next if($xmlDetail->{'children'});
+
+      my $gid = create_gid();
+      my $author = $issue->{'author'}->{'name'};
+      my $title = "Redmine-Ticket '$issue->{'subject'}' bearbeiten";
+      my $utility = $utilities{$project . '.' . $issue->{'priority'}->{'name'}};
+      my $seconds_estimate = (ref $issue->{'estimated_hours'} ne 'HASH')? $issue->{'estimated_hours'} * 3600: undef;
+      my $publication = PUBLICATION_PRIVATE;
+      my $status = $issue->{'done_ratio'};
+
+      next if $status == 100;
+
+      if($status < 0 or $status >= 100) {
+        $status = 0;
+      }
+
+      if(not defined $seconds_estimate) {
+        $title .= ': Zeitschätzung';
+        $seconds_estimate = 60;
+      }
+#    if(not defined $issue->{'assigned_to'}) {
+#      $title .= ': Zuweisen';
+#      $seconds_estimate = 60;
+#    }
+
+      if(not defined $utility) {
+        $title = "Utilator: Redmine-Utility-Definition für '" . $project . '.' . $issue->{'priority'}->{'name'} ."' fixen.";
+        $utility = 4;
+      }
+
+      my @validLocations;
+      foreach my $loc (@{$locations{$project}}) {
+        my @rows = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $loc)};
+        SELECT * FROM space_active WHERE name = ?
+EOSQL
+        if(@rows) {
+          push @validLocations, $loc;
+        } else {
+          $title .= "Utilator: Redmine-Locations definition needs to be fixed: $loc";
+          $seconds_estimate = 60;
+        }
+      }
+
+      print "Creating task for " . $issue->{'subject'} . "\n";
+
+      dbh()->do(<<EOSQL, {}, $gid, $author, $title, $seconds_estimate, 0, $status, $publication, $now);
+        INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 EOSQL
 
-    dbh()->do(<<EOSQL, {}, $id, "0constant:" . int($utility * 1000));
-INSERT INTO task_utility (task, distribution) VALUES (?, ?)
+      my $id = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $gid)->[0]->{'id'};
+        SELECT id FROM task WHERE gid = ?
 EOSQL
 
-    dbh()->do(<<EOSQL, {}, $id, $externalBase . "/issues/" . $issue->{'id'});
-INSERT INTO task_external (task, external) VALUES (?, ?)
+      dbh()->do(<<EOSQL, {}, $id, "0constant:" . int($utility * 1000));
+        INSERT INTO task_utility (task, distribution) VALUES (?, ?)
 EOSQL
 
-    foreach my $loc (@validLocations) {
-      dbh()->do(<<EOSQL, {}, $gid, $loc);
-      INSERT INTO task_likelyhood_space (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+      dbh()->do(<<EOSQL, {}, $id, $externalBase . "/issues/" . $issue->{'id'});
+        INSERT INTO task_external (task, external) VALUES (?, ?)
 EOSQL
+
+      foreach my $loc (@validLocations) {
+        dbh()->do(<<EOSQL, {}, $gid, $loc);
+        INSERT INTO task_likelyhood_space (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+      }
     }
   }
 } else {
