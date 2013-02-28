@@ -78,6 +78,7 @@ if($action eq "pull") {
     next if($issue->{'start_date'} gt $now);
     next if($issue->{'status'}->{'name'} eq 'Erledigt');
     next if($issue->{'status'}->{'name'} eq 'Fehlgeschlagen');
+    next if(exists $issue->{'category'} and $issue->{'category'}->{'name'} eq 'Info');
     
     my @tasks = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $externalBase . '/issues/' . $issue->{'id'})};
     SELECT * FROM task t WHERE EXISTS (SELECT 1 FROM task_external e WHERE e.task = t.id AND e.external = ?) AND t.status < 100
