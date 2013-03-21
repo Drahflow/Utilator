@@ -10,6 +10,8 @@ use Data::Dumper;
 use Date::Parse;
 
 my $task = Query::resolveTask($ARGV[0]) or die help();
+print Dumper($task);
+
 my $what = $ARGV[1] or die help();
 
 my $now = iso_full_date(time);
