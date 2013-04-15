@@ -71,6 +71,7 @@ eval {
             }
 
             if($thisExtraUtility) {
+              print "Important mail: $subject\n";
               $estimatedUtility += $extraUtility;
               $extraUtility += $thisExtraUtility;
             }
