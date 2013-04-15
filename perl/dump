@@ -10,31 +10,39 @@ use Data::Dumper;
 
 my $task = Query::resolveTask($ARGV[0]) or die help();
 
-print Dumper($task);
-print "Time est: " . reverseInterpretUnit($task->{'seconds_estimate'});
+my @fields = @ARGV[1 .. $#ARGV];
 
-print "\n-- utility --\n";
-print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
-SELECT u.distribution, u.task FROM task_utility u JOIN task t ON t.id = u.task WHERE t.gid = ?
+foreach my $field (@fields) {
+  print "$task->{$field}\n";
+}
+
+unless (@fields) {
+  print Dumper($task);
+  print "Time est: " . reverseInterpretUnit($task->{'seconds_estimate'});
+
+  print "\n-- utility --\n";
+  print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
+  SELECT u.distribution, u.task FROM task_utility u JOIN task t ON t.id = u.task WHERE t.gid = ?
 EOSQL
 
-print "\n-- likelyhood time --\n";
-print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
-SELECT l.distribution, l.task FROM task_likelyhood_time l JOIN task t ON t.id = l.task WHERE t.gid = ?
+  print "\n-- likelyhood time --\n";
+  print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
+  SELECT l.distribution, l.task FROM task_likelyhood_time l JOIN task t ON t.id = l.task WHERE t.gid = ?
 EOSQL
 
-print "\n-- likelyhood space --\n";
-print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
-SELECT l.distribution, l.task FROM task_likelyhood_space l JOIN task t ON t.id = l.task WHERE t.gid = ?
+  print "\n-- likelyhood space --\n";
+  print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
+  SELECT l.distribution, l.task FROM task_likelyhood_space l JOIN task t ON t.id = l.task WHERE t.gid = ?
 EOSQL
 
-print "\n-- external --\n";
-print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
-SELECT e.external, e.task FROM task_external e JOIN task t ON t.id = e.task WHERE t.gid = ?
+  print "\n-- external --\n";
+  print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
+  SELECT e.external, e.task FROM task_external e JOIN task t ON t.id = e.task WHERE t.gid = ?
 EOSQL
+}
 
 sub help {
   return <<EOTXT
-dump <task>
+dump <task> [<field>...]
 EOTXT
 }

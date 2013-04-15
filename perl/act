@@ -40,4 +40,3 @@ sub help {
 Tries to switch computer context into helpful state for the task.
 EOTXT
 }
-
