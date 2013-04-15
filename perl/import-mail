@@ -27,71 +27,82 @@ my @INBOXEN = (
   "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/pop.gmx.net/Inbox",
   "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/pop.gmx.net/Inbox.sbd/Aktive-NDS",
   "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/mail.ips.cs.tu-bs.de/Inbox",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.tu-bs.de/INBOX",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/iserv.hvf-bs.net/INBOX",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig-1.de/INBOX",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig.de/INBOX",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/quuxlogic.com/INBOX",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.quuxlogic.com/INBOX",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.tu-bs.de/INBOX-\\d+\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/iserv.hvf-bs.net/INBOX-\\d+\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig-1.de/INBOX-\\d+\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig.de/INBOX-\\d+\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/quuxlogic.com/INBOX-\\d+\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.quuxlogic.com/INBOX-\\d+\$",
 );
 
-foreach my $inbox (@INBOXEN) {
-  open INBOX, '<:raw', $inbox or die "cannot open $inbox: $!";
-  my $inboxBaseUtility = Secrets::importMailBaseUtilByInbox($inbox);
+eval {
+  foreach my $inbox (@INBOXEN) {
+    $inbox =~ /(.*)\/[^\/]+/ or die "cannot get directory of $inbox";
+    my @files = glob "$1/*";
+    my ($file) = grep { m/$inbox/ } @files;
 
-  while(my $line = <INBOX>) {
-    if($line =~ /^X-Mozilla-Status: ...(.)$/) {
-      $seen = $1;
-      $toMe = 0;
-      $state = 1;
-      $thisExtraUtility = 0;
-    } elsif($state == 2 and $line =~ /^\t(.*)$/) {
-      $subject .= $1;
-    } elsif($state == 1 or $state == 2) {
-      $state = 1;
+    print "Processing $file\n";
 
-      if($line =~ /^$/) {
-        if(not $seen) {
-          # print "Subject: $subject\n";
-          ++$unreadCount;
+    open INBOX, '<:raw', $file or die "cannot open $file: $!";
+    my $inboxBaseUtility = Secrets::importMailBaseUtilByInbox($inbox);
 
-          if($toMe) {
-            $estimatedUtility += 10;
-            $estimatedTime += 60;
-          } else {
-            $estimatedUtility += $inboxBaseUtility;
-            $estimatedTime += 10;
+    while(my $line = <INBOX>) {
+      if($line =~ /^X-Mozilla-Status: ...(.)$/) {
+        $seen = $1;
+        $toMe = 0;
+        $state = 1;
+        $thisExtraUtility = 0;
+      } elsif($state == 2 and $line =~ /^\t(.*)$/) {
+        $subject .= $1;
+      } elsif($state == 1 or $state == 2) {
+        $state = 1;
+
+        if($line =~ /^$/) {
+          if(not $seen) {
+            # print "Subject: $subject\n";
+            ++$unreadCount;
+
+            if($toMe) {
+              $estimatedUtility += 10;
+              $estimatedTime += 60;
+            } else {
+              $estimatedUtility += $inboxBaseUtility;
+              $estimatedTime += 10;
+            }
+
+            if($thisExtraUtility) {
+              $estimatedUtility += $extraUtility;
+              $extraUtility += $thisExtraUtility;
+            }
           }
 
-          if($thisExtraUtility) {
-            $estimatedUtility += $extraUtility;
-            $extraUtility += $thisExtraUtility;
-          }
+          $state = 0;
+        } elsif($line =~ /^Subject: (.*)$/) {
+          $subject = $1;
+          $state = 2;
+        } elsif($line =~ /^(To|CC): (.*(drahflow|schicke).*|jens\@quuxLogic.com)/) {
+          $toMe = 1;
+        } elsif($line =~ /^From: ([^<]*)$/) {
+          $thisExtraUtility = Secrets::importMailExtraUtilBySender($1);
+        } elsif($line =~ /^From: .* <(.*)>$/) {
+          $thisExtraUtility = Secrets::importMailExtraUtilBySender($1);
         }
-
-        $state = 0;
-      } elsif($line =~ /^Subject: (.*)$/) {
-        $subject = $1;
-        $state = 2;
-      } elsif($line =~ /^(To|CC): (.*(drahflow|schicke).*|jens\@quuxLogic.com)/) {
-        $toMe = 1;
-      } elsif($line =~ /^From: ([^<]*)$/) {
-        $thisExtraUtility = Secrets::importMailExtraUtilBySender($1);
-      } elsif($line =~ /^From: .* <(.*)>$/) {
-        $thisExtraUtility = Secrets::importMailExtraUtilBySender($1);
       }
     }
+    close INBOX;
   }
-  close INBOX;
+
+  print "Unread: " . $unreadCount . "\n";
+  print "Estimated utility: " . ($estimatedUtility / 1000.0) . "\n";
+  print "Estimated time: " . $estimatedTime . "s\n";
+  print "Extra utility: " . ($extraUtility / 1000.0) . "\n";
+
+  createTask('Read mails', $estimatedUtility, $estimatedTime);
+  createTask('Read important mails', $extraUtility, 120);
+};
+if($@) {
+  createTask("Fix import-mails: $@", 1000000, 1800);
 }
-
-print "Unread: " . $unreadCount . "\n";
-print "Estimated utility: " . ($estimatedUtility / 1000.0) . "\n";
-print "Estimated time: " . $estimatedTime . "s\n";
-print "Extra utility: " . ($extraUtility / 1000.0) . "\n";
-
-createTask('Read mails', $estimatedUtility, $estimatedTime);
-createTask('Read important mails', $extraUtility, 120);
 
 sub createTask {
   my ($title, $estimatedUtility, $estimatedTime) = @_;
