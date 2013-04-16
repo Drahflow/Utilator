@@ -24,25 +24,25 @@ my %goodCerts = (
 );
 
 my %names = (
-  'ratbs' => {
-    'project' => 'https://ticket.piraten-nds.de/projects/rat-bs',
+  'agtechnik' => {
+    'project' => 'https://ticket.piraten-nds.de/projects/agtechnik',
     'issues' => 'https://ticket.piraten-nds.de/issues',
   }
 );
 
 my %pullFor = (
-  'Jens-Wolfhard Schicke-Uffmann' => 1,
+  'Helena Schmidt' => 1,
 );
 
 my %utilities = (
-  'ratbs.Niedrig' => 0.8,
-  'ratbs.Normal' => 2,
-  'ratbs.Hoch' => 4,
-  'ratbs.Sofort' => 10,
+  'agtechnik.Niedrig' => 0.8,
+  'agtechnik.Normal' => 2,
+  'agtechnik.Hoch' => 4,
+  'agtechnik.Sofort' => 10,
 );
 
 my %locations = (
-  'ratbs' => ['slice_pirates'],
+  'agtechnik' => ['slice_pirates'],
 );
 
 my $project = $ARGV[0] or die help();
