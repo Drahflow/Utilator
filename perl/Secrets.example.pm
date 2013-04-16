@@ -1,7 +1,8 @@
 package Secrets;
 
 use Digest::MD5 qw(md5_hex);
-use Global qw(fetch_space);
+use Global qw(space_by_name);
+use Digest::MD5 qw(md5);
 
 # md5sum of email address => estimated utility of reading a mail from that person
 my %importMailExtraUtilBySender = (
@@ -9,6 +10,7 @@ my %importMailExtraUtilBySender = (
 );
 
 sub importMailExtraUtilBySender($) {
+  # print $_[0] . " -> " . $importMailExtraUtilBySender{md5_hex($_[0])} . "\n";
   return ($importMailExtraUtilBySender{md5_hex(shift)} or 0);
 }
 
