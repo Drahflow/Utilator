@@ -27,16 +27,18 @@ my @INBOXEN = (
   "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/pop.gmx.net/Inbox",
   "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/pop.gmx.net/Inbox.sbd/Aktive-NDS",
   "$ENV{HOME}/.icedove/evfwp6xx.default/Mail/mail.ips.cs.tu-bs.de/Inbox",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.tu-bs.de/INBOX-\\d+\$",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/iserv.hvf-bs.net/INBOX-\\d+\$",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig-1.de/INBOX-\\d+\$",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig.de/INBOX-\\d+\$",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/quuxlogic.com/INBOX-\\d+\$",
-  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.quuxlogic.com/INBOX-\\d+\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.tu-bs.de/INBOX-?\\d*\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/iserv.hvf-bs.net/INBOX-?\\d*\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig-1.de/INBOX-?\\d*\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/mail.piratenpartei-braunschweig.de/INBOX-?\\d*\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/quuxlogic.com/INBOX-?\\d*\$",
+  "$ENV{HOME}/.icedove/evfwp6xx.default/ImapMail/imap.quuxlogic.com/INBOX-?\\d*\$",
 );
 
 eval {
   foreach my $inbox (@INBOXEN) {
+    print "Searching for $inbox\n";
+
     $inbox =~ /(.*)\/[^\/]+/ or die "cannot get directory of $inbox";
     my @files = glob "$1/*";
     my ($file) = grep { m/$inbox/ } @files;
