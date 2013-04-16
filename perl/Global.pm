@@ -13,7 +13,7 @@ use Date::Format;
 my $dbh;
 
 sub dbLocation() {
-  if(defined $ENV{'HOME'} and $ENV{'HOME'} =~ /drahflow/) {
+  if(defined $ENV{'HOME'} and $ENV{'HOME'} ne '/root') {
     return "$ENV{'HOME'}/utilator.db";
   }
   if(-d '/opt/utilator') {
