@@ -29,8 +29,9 @@ if(not defined $url and $task->{'title'} =~ /^(http[^ ]+)/) {
 }
 
 if(defined $url) {
-  system("iceweasel '$url'");
-  system("wmiir xwrite /ctl view 'www'");
+  system("firefox '$url'");
+  system("echo 'awful.tag.viewonly(tags[1][2])'|awesome-client");
+  #system("wmiir xwrite /ctl view 'www'");
 }
 
 sub help {
