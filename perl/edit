@@ -44,6 +44,12 @@ EOSQL
   dbh()->do(<<EOSQL, {}, $new, $now, $gid);
   UPDATE task SET title = ?, last_edit = ? WHERE gid = ?
 EOSQL
+} elsif($what eq 'desc') {
+  my $new = $ARGV[2] or die help();
+
+  dbh()->do(<<EOSQL, {}, $new, $now, $gid);
+  UPDATE task SET description = ?, last_edit = ? WHERE gid = ?
+EOSQL
 } elsif($what eq 'pub') {
   my $new = $ARGV[2] or die help();
 
@@ -106,15 +112,16 @@ print "edited: $gid\n";
 sub help {
   return <<EOTXT
 ./edit <task gid / 'c'> <...>
-  done              - complete task
-  enter             - enter all locations associated with task
-  wait <time>       - task impossible for the next <time>
-  wait_until <date> - task impossible until specified <date>
-  est <time>        - set new time estimate
-  title <title>     - set new title
-  util <utility>    - set new (constant) utility
-  pub [L|P|M|T|O]   - set new publication state: Local, Private, Masked, Transparent, Offer
-  loc <location>    - adds a location dependency, only one per dimension
+  done               - complete task
+  enter              - enter all locations associated with task
+  wait <time>        - task impossible for the next <time>
+  wait_until <date>  - task impossible until specified <date>
+  est <time>         - set new time estimate
+  title <title>      - set new title
+  desc <description> - set new description
+  util <utility>     - set new (constant) utility
+  pub [L|P|M|T|O]    - set new publication state: Local, Private, Masked, Transparent, Offer
+  loc <location>     - adds a location dependency, only one per dimension
 EOTXT
 }
 
