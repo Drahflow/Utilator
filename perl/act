@@ -6,6 +6,7 @@ use warnings;
 use Global qw(/./);
 use Query qw(/./);
 use Data::Dumper;
+use Configuration;
 
 my $task = Query::resolveTask($ARGV[0]) or die help();
 
@@ -29,8 +30,14 @@ if(not defined $url and $task->{'title'} =~ /^(http[^ ]+)/) {
 }
 
 if(defined $url) {
-  system("iceweasel '$url'");
-  system("wmiir xwrite /ctl view 'www'");
+  system( Configuration::getBrowser() . " '$url'");
+  my $windowManager = Configuration::getWindowManager();
+  if( $windowManager=~m/awesome/) {
+    system("echo 'awful.tag.viewonly(tags[1][2])'|awesome-client");
+  }
+  elsif( $windowManager=~m/wmii/ ) {
+    system("wmiir xwrite /ctl view 'www'");
+  }
 }
 
 sub help {
