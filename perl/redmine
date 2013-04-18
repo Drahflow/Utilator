@@ -27,7 +27,19 @@ my %names = (
   'agtechnik' => {
     'project' => 'https://ticket.piraten-nds.de/projects/agtechnik',
     'issues' => 'https://ticket.piraten-nds.de/issues',
-  }
+  },
+  'vorstand' => {
+    'project' => 'https://ticket.piraten-nds.de/projects/vorstand',
+    'issues' => 'https://ticket.piraten-nds.de/issues',
+  },
+  'helenastodo' => {
+    'project' => 'https://ticket.piraten-nds.de/projects/helenastodo',
+    'issues' => 'https://ticket.piraten-nds.de/issues',
+  },
+  'bewerbungen' => {
+    'project' => 'http://flfy.de/redmine/projects/bewerbungen',
+    'issues' => 'http://flfy.de/redmine/issues',
+  },
 );
 
 my %pullFor = (
@@ -39,10 +51,25 @@ my %utilities = (
   'agtechnik.Normal' => 2,
   'agtechnik.Hoch' => 4,
   'agtechnik.Sofort' => 10,
+  'helenastodo.Niedrig' => 0.8,
+  'helenastodo.Normal' => 2,
+  'helenastodo.Hoch' => 5.1,
+  'helenastodo.Sofort' => 15,
+  'vorstand.Niedrig' => 0.8,
+  'vorstand.Normal' => 2,
+  'vorstand.Hoch' => 5,
+  'vorstand.Sofort' => 12,
+  'bewerbungen.Niedrig' => 0.8,
+  'bewerbungen.Normal' => 2,
+  'bewerbungen.Hoch' => 4,
+  'bewerbungen.Sofort' => 10,
 );
 
 my %locations = (
   'agtechnik' => ['slice_pirates'],
+  'helenastodo' => ['slice_pirates'],
+  'vorstand' => ['slice_pirates'],
+  'bewerbungen' => ['slice_work'],
 );
 
 my $project = $ARGV[0] or die help();
