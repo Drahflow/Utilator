@@ -26,7 +26,7 @@ my %redmineNames = (
 );
 
 my %redminePullFor = (
-  'Helena Schmidt' => 1,
+  $ownName => 1,
 );
 
 my %redmineUtilities = (
@@ -40,6 +40,11 @@ my %redmineLocations = (
   'exampleProject' => ['slice_work'],
 );
 
+#### import-mail configuration ####
+
+my @importMailInboxen = (
+  "$ENV{HOME}/Inbox.mbox",
+);
 
 ## program logic: ##
 
@@ -63,16 +68,21 @@ sub getRedminePullFor() {
   return %redminePullFor;
 }
 
+sub getImportMailInboxen() {
+  return @importMailInboxen;
+}
 
+sub getBrowser() {
+  return $ownBrowser;
+}
 
-
-
-
+sub getWindowManager() {
+  return $ownWindowManager;
+}
 
 sub getName() {
   return $ownName;
 }
-
 
 sub getEmail() {
   return $ownEmailAddress;

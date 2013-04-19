@@ -30,12 +30,11 @@ if(not defined $url and $task->{'title'} =~ /^(http[^ ]+)/) {
 }
 
 if(defined $url) {
-  system( Configuration::getBrowser() . " '$url'");
+  system(Configuration::getBrowser() . " '$url'");
   my $windowManager = Configuration::getWindowManager();
-  if( $windowManager=~m/awesome/) {
+  if($windowManager =~ m/awesome/) {
     system("echo 'awful.tag.viewonly(tags[1][2])'|awesome-client");
-  }
-  elsif( $windowManager=~m/wmii/ ) {
+  } elsif($windowManager =~ m/wmii/) {
     system("wmiir xwrite /ctl view 'www'");
   }
 }
