@@ -25,6 +25,10 @@ my $estimatedUtility = 0;
 my $extraUtility = 0;
 
 my @INBOXEN = Configuration::getImportMailInboxen();
+my $ownAddressRegEx = Configuration::getImportMailOwnAddressRegEx();
+my $timeToReadOwnMail = Configuration::getImportMailTimeToReadOwnMail();
+my $timeToReadMLMail = Configuration::getImportMailTimeToReadMLMail();
+my $utilityOfReadOwnMail = Configuration::getImportMailUtilityOfReadOwnMail();
 
 eval {
   foreach my $inbox (@INBOXEN) {
@@ -56,11 +60,11 @@ eval {
             ++$unreadCount;
 
             if($toMe) {
-              $estimatedUtility += 10;
-              $estimatedTime += 60;
+              $estimatedUtility += $utilityOfReadOwnMail;
+              $estimatedTime += $timeToReadOwnMail;
             } else {
               $estimatedUtility += $inboxBaseUtility;
-              $estimatedTime += 10;
+              $estimatedTime += $timeToReadMLMail;
             }
 
             if($thisExtraUtility) {
@@ -74,7 +78,7 @@ eval {
         } elsif($line =~ /^Subject: (.*)$/) {
           $subject = $1;
           $state = 2;
-        } elsif($line =~ /^(To|CC): (.*(drahflow|schicke).*|jens\@quuxLogic.com)/) {
+        } elsif($line =~ /^(To|CC): $ownAddressRegEx/) {
           $toMe = 1;
         } elsif($line =~ /^From: ([^<]*)$/) {
           $thisExtraUtility = Secrets::importMailExtraUtilBySender($1);
