@@ -1,10 +1,10 @@
-package Configuration;
+package Settings;
 
 #### default informations ####
 our $ownName = '<Your Name>';
 our $ownEmailAddress = '<Your.Email@Address.com';
-
-
+our $browser = "firefox";
+our $windowManager = "wmii";
 
 #### redmine configuration ####
 
@@ -53,14 +53,14 @@ our $importMailTimeToReadMLMail = 10;
 
 ## program logic: ##
 
-# provide getFooBar instead of $Configuration::fooBar, so the user can provide code instead of constant values
+# provide getFooBar instead of $Settings::fooBar, so the user can provide code instead of constant values
 # if this is desired
 sub AUTOLOAD {
-  $AUTOLOAD =~ /^Configuration::get(.)(.*)/ or die "Configuration.pm AUTOLOAD expected getSomeValue()";
+  $AUTOLOAD =~ /^Settings::get(.)(.*)/ or die "Settings.pm AUTOLOAD expected getSomeValue()";
   my $name = lc($1).$2;
   
-  my $syms = \%Configuration::;
-  die "Configuration.pm AUTOLOAD asked to provide getter for nonexistent $name" unless exists $syms->{$name};
+  my $syms = \%Settings::;
+  die "Settings.pm AUTOLOAD asked to provide getter for nonexistent $name" unless exists $syms->{$name};
   *entry = $syms->{$name};
 
   return ${*entry{SCALAR}} if defined ${*entry{SCALAR}};

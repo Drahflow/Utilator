@@ -4,14 +4,13 @@ use strict;
 use warnings;
 use encoding 'utf-8';
 
+use Global qw(/./);
+use Configuration;
+
 use Date::Parse qw(str2time);
 use Date::Format qw(time2str);
 use List::Util qw(min max);
 use Data::Dumper;
-use Configuration;
-use Secrets;
-
-use Global qw(/./);
 
 my $state = 0;
 my $seen = 1;
@@ -24,11 +23,11 @@ my $estimatedTime = 300;
 my $estimatedUtility = 0;
 my $extraUtility = 0;
 
-my @INBOXEN = Configuration::getImportMailInboxen();
-my $ownAddressRegEx = Configuration::getImportMailOwnAddressRegEx();
-my $timeToReadOwnMail = Configuration::getImportMailTimeToReadOwnMail();
-my $timeToReadMLMail = Configuration::getImportMailTimeToReadMLMail();
-my $utilityOfReadOwnMail = Configuration::getImportMailUtilityOfReadOwnMail();
+my @INBOXEN = Settings::getImportMailInboxen();
+my $ownAddressRegEx = Settings::getImportMailOwnAddressRegEx();
+my $timeToReadOwnMail = Settings::getImportMailTimeToReadOwnMail();
+my $timeToReadMLMail = Settings::getImportMailTimeToReadMLMail();
+my $utilityOfReadOwnMail = Settings::getImportMailUtilityOfReadOwnMail();
 
 eval {
   foreach my $inbox (@INBOXEN) {

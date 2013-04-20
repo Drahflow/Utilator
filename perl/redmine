@@ -5,20 +5,20 @@ use warnings;
 use encoding 'utf-8';
 
 use Global qw(/./);
+use Configuration;
+
 use JSON;
 use LWP;
 use LWP::UserAgent;
 use Digest::SHA qw(sha512_hex);
-use Secrets;
-use Configuration;
 use XML::Simple;
 use Data::Dumper;
 
-my %goodCerts = Configuration::getRedmineGoodCerts();
-my %names = Configuration::getRedmineNames();
-my %pullFor = Configuration::getRedminePullFor();
-my %utilities = Configuration::getRedmineUtilities();
-my %locations = Configuration::getRedmineLocations();
+my %goodCerts = Settings::getRedmineGoodCerts();
+my %names = Settings::getRedmineNames();
+my %pullFor = Settings::getRedminePullFor();
+my %utilities = Settings::getRedmineUtilities();
+my %locations = Settings::getRedmineLocations();
 
 
 my $project = $ARGV[0] or die help();

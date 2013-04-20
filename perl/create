@@ -8,7 +8,7 @@ use Global qw(/./);
 use Configuration;
 
 my $gid = create_gid();
-my $author = 'mailto://' . Configuration::getEmail();
+my $author = 'mailto://' . Settings::getEmail();
 my $title = $ARGV[0] or die help();
 my $utility = $ARGV[1] or die help();
 my $seconds_estimate = interpretUnit($ARGV[2]) or die help();

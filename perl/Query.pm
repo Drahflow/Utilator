@@ -8,10 +8,11 @@ use strict;
 use warnings;
 
 use Global qw(/./);
+use Configuration;
+
 use Date::Format;
 use Date::Parse;
 use Data::Dumper;
-use Secrets;
 
 my %utility;
 my %likelyhood_time;
