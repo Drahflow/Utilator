@@ -1,0 +1,67 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Global qw(/./);
+use Configuration;
+
+use Date::Parse qw(str2time);
+use Date::Format qw(time2str);
+use List::Util qw(min max);
+use Data::Dumper;
+use Date::Calc;
+
+my $sites = Secrets::websites();
+
+eval {
+  my $today = Date::Calc::Day_of_Week(Date::Calc::Today(time));
+
+  foreach my $site (keys %$sites) {
+    my ($util, $time, $days) = @{$sites->{$site}};
+
+    if(grep { $_ == $today } @$days) {
+      createTask("$site lesen", $util, interpretUnit($time));
+    }
+  }
+};
+if($@) {
+  createTask("Fix daily-websites: $@", 1000000, 1800);
+}
+
+sub createTask {
+  my ($title, $estimatedUtility, $estimatedTime) = @_;
+
+  my $author = 'mailto://drahflow@gmx.de';
+  my $publication = PUBLICATION_PRIVATE;
+  my $now = iso_full_date(time);
+
+  my $gid = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $title)->[0]->{'gid'};
+  SELECT gid FROM task WHERE title = ? AND status < 100
+EOSQL
+
+  if(defined $gid) {
+    dbh()->do(<<EOSQL, {}, $gid);
+    DELETE FROM task_utility WHERE task = (SELECT id FROM task WHERE gid = ?)
+EOSQL
+    dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
+    INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+    dbh()->do(<<EOSQL, {}, $estimatedTime, $now, $gid);
+    UPDATE task SET seconds_estimate = ?, last_edit = ? WHERE gid = ?
+EOSQL
+
+    print "edited: $gid\n";
+  } else {
+    $gid = create_gid();
+    dbh()->do(<<EOSQL, {}, $gid, $author, $title, $estimatedTime, 0, 0, $publication, $now);
+    INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+EOSQL
+    dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
+    INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+
+    print "created: $gid\n";
+  }
+}

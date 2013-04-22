@@ -58,4 +58,13 @@ sub activeSpaceBySchedule() {
   };
 }
 
+sub websites() {
+  return {
+    # format: "http://example.com" => [<util>, <time>, [<weekdays>]],
+    # 1 = monday, 7 = sunday
+
+    "https://github.com/Drahflow/Utilator" => [50, "3m", [1]],
+  };
+}
+
 1;

@@ -1,5 +1,7 @@
 #!/bin/zsh
 
+daily-websites
+
 while sleep 600; do
   echo -n "Starting background run for "; date
 
