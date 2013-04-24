@@ -175,3 +175,8 @@ necessary to automatically import external events into your task queue.
 
 Various scripts to import from external sources. You'll probably have to edit them to get useful
 results.
+
+Licence
+=======
+
+This code is released under the WTFPL.
