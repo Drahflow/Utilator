@@ -1,0 +1,20 @@
+#!/bin/zsh
+
+file="$1"
+
+{
+  if [ "$file" = "" ]; then
+    cat
+  else
+    cat "$file"
+  fi
+} | grep '^Subject:' | head -n 1 | sed -e 's/.*: *//' | tr -d "\r\n" | read subject;
+
+echo -n "Bearbeite ${subject} <util>, <time>: ";
+read todospec </dev/tty;
+
+if [ "$todospec" != "" ]; then
+  u="$(echo $todospec | sed -e 's/,.*//g')"
+  t="$(echo $todospec | sed -e 's/.*, *//g')"
+  cd /home/drahflow/utilator/perl && ./create "Mail '${subject}' bearbeiten" "$u" "$t" 2>&1
+fi
