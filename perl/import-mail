@@ -29,8 +29,10 @@ my $timeToReadOwnMail = Settings::getImportMailTimeToReadOwnMail();
 my $timeToReadMLMail = Settings::getImportMailTimeToReadMLMail();
 my $utilityOfReadOwnMail = Settings::getImportMailUtilityOfReadOwnMail();
 
-eval {
-  foreach my $inbox (@INBOXEN) {
+my @errors;
+
+foreach my $inbox (@INBOXEN) {
+  eval {
     print "Searching for $inbox\n";
 
     $inbox =~ /(.*)\/[^\/]+/ or die "cannot get directory of $inbox";
@@ -43,11 +45,15 @@ eval {
     my $inboxBaseUtility = Secrets::importMailBaseUtilByInbox($inbox);
 
     while(my $line = <INBOX>) {
-      if($line =~ /^X-Mozilla-Status: ...(.)$/) {
-        $seen = $1;
+      if($line =~ /^From /) {
         $toMe = 0;
         $state = 1;
         $thisExtraUtility = 0;
+        $seen = 0;
+      } elsif($line =~ /^X-Mozilla-Status: ...(.)$/) {
+        $seen = $1;
+      } elsif($line =~ /^Status: .*R.*/) {
+        $seen = 1;
       } elsif($state == 2 and $line =~ /^\t(.*)$/) {
         $subject .= $1;
       } elsif($state == 1 or $state == 2) {
@@ -87,18 +93,23 @@ eval {
       }
     }
     close INBOX;
+  };
+
+  if($@) {
+    push @errors, $@;
   }
+}
 
-  print "Unread: " . $unreadCount . "\n";
-  print "Estimated utility: " . ($estimatedUtility / 1000.0) . "\n";
-  print "Estimated time: " . $estimatedTime . "s\n";
-  print "Extra utility: " . ($extraUtility / 1000.0) . "\n";
+print "Unread: " . $unreadCount . "\n";
+print "Estimated utility: " . ($estimatedUtility / 1000.0) . "\n";
+print "Estimated time: " . $estimatedTime . "s\n";
+print "Extra utility: " . ($extraUtility / 1000.0) . "\n";
 
-  createTask('Read mails', $estimatedUtility, $estimatedTime);
-  createTask('Read important mails', $extraUtility, 120);
-};
-if($@) {
-  createTask("Fix import-mails: $@", 1000000, 1800);
+createTask('Read mails', $estimatedUtility, $estimatedTime);
+createTask('Read important mails', $extraUtility, 120);
+
+if(@errors) {
+  # createTask("Fix import-mails: @errors", 1000000, 1800);
 }
 
 sub createTask {
