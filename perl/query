@@ -22,24 +22,42 @@ if($opts =~ /(\d+[smhdw])/) {
   $maxTime = interpretUnit($1);
 }
 my $gid = $opts =~ /g/;
-my $now = iso_full_date(time);
+my $continuous = $opts =~ /c/;
+my $clear = $opts =~ /C/;
 
-my @tasks = Query::sortedTasks($now);
+sub query {
+  my $now = iso_full_date(time);
 
-if($maxTime) {
-  @tasks = grep { $_->{'seconds_estimate'} <= $maxTime } @tasks;
-}
+  my @tasks = Query::sortedTasks($now);
 
-if(@tasks > $maxCount) {
-  @tasks = @tasks[$#tasks - $maxCount + 1 .. $#tasks];
-}
-
-foreach my $task (@tasks) {
-  if($gid) {
-    printf "%2.8f u/h: %s %d %s\n", $task->{'current_utility'} * 3600, $task->{'gid'}, $task->{'publication'}, $task->{'title'};
-    printf "  %s\n", [split /\n/, $task->{'description'}]->[0] if defined $task->{'description'} and $task->{'description'} ne '';
-  } else {
-    printf "%2.8f u/h: %s\n", $task->{'current_utility'} * 3600, $task->{'title'};
-    printf "  %s\n", [split /\n/, $task->{'description'}]->[0] if defined $task->{'description'} and $task->{'description'} ne '';
+  if($maxTime) {
+    @tasks = grep { $_->{'seconds_estimate'} <= $maxTime } @tasks;
   }
+
+  if(@tasks > $maxCount) {
+    @tasks = @tasks[$#tasks - $maxCount + 1 .. $#tasks];
+  }
+
+  if($clear) {
+    print "\e[1;1H\e[2J";
+  }
+
+  foreach my $task (@tasks) {
+    if($gid) {
+      printf "%2.8f u/h: %s %d %s\n", $task->{'current_utility'} * 3600, $task->{'gid'}, $task->{'publication'}, $task->{'title'};
+      printf "  %s\n", [split /\n/, $task->{'description'}]->[0] if defined $task->{'description'} and $task->{'description'} ne '';
+    } else {
+      printf "%2.8f u/h: %s\n", $task->{'current_utility'} * 3600, $task->{'title'};
+      printf "  %s\n", [split /\n/, $task->{'description'}]->[0] if defined $task->{'description'} and $task->{'description'} ne '';
+    }
+  }
+}
+
+if($continuous) {
+  while(1) {
+    query();
+    sleep 1;
+  }
+} else {
+  query();
 }
