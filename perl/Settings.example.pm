@@ -1,8 +1,8 @@
 package Settings;
 
 #### default informations ####
-our $ownName = '<Your Name>';
-our $ownEmailAddress = '<Your.Email@Address.com';
+our $name = '<Your Name>';
+our $email = '<Your.Email@Address.com';
 our $browser = "firefox";
 our $windowManager = "wmii";
 
