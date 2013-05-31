@@ -54,7 +54,7 @@ sub activeSpaceBySchedule() {
     'role' => [
       space_by_name()->{'role_employee'},
       space_by_name()->{'role_pirate'},
-    ]->[int(time / 86400) % 2],
+    ]->[int(time / 3600) % 2],
   };
 }
 
