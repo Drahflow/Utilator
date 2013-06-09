@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Global qw(/./);
+use Query qw(/./);
+use Data::Dumper;
+
+check();
+
+sub check {
+  my $now = iso_full_date(time);
+
+  my @tasks = Query::sortedTasks($now);
+
+  foreach my $task (@tasks) {
+    my $utility = (Query::getTaskUtility($task) or []);
+    unless(@$utility) {
+      printf "No utility: %s: %s\n", $task->{'gid'}, $task->{'title'};
+    }
+  }
+}
