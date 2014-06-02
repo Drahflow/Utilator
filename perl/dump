@@ -16,14 +16,19 @@ foreach my $field (@fields) {
   print "$task->{$field}\n";
 }
 
+
 unless (@fields) {
   print Dumper($task);
-  print "Time est: " . reverseInterpretUnit($task->{'seconds_estimate'});
+  print "Time est: " . reverseInterpretUnit($task->{'seconds_estimate'}) . "\n";
 
   print "\n-- utility --\n";
   print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
   SELECT u.distribution, u.task FROM task_utility u JOIN task t ON t.id = u.task WHERE t.gid = ?
 EOSQL
+
+  my @evaluatedTasks = Query::sortedTasks(iso_full_date(time));
+  my ($evaluatedTask) = grep { $_->{'id'} eq $task->{'id'} } @evaluatedTasks;
+  print "Current utility: " . $evaluatedTask->{'current_utility'} * 3600 . " u/h\n";
 
   print "\n-- likelyhood time --\n";
   print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
