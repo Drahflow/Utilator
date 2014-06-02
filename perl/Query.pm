@@ -196,6 +196,15 @@ sub evaluate_time_distribution {
       if($1 le $time and $time le $2) {
         $value = $value * $3 / 1000;
       }
+    } elsif($spec =~ /^.mulhours:(\d+):(\d+)\+(\d+);(.+)/) {
+      my $start = $1 * 60 + $2;
+      my $end = $start + $3;
+      my $multiplier = $4;
+      my (undef, undef, undef, $hour, $minute) = localtime(str2time($time));
+      my $minuteOfDay = $hour * 60 + $minute;
+      if($start <= $minuteOfDay and $minuteOfDay < $end) {
+        $value = $value * $multiplier / 1000;
+      }
     } else {
       die "unknown distribution spec: $spec";
     }
