@@ -105,15 +105,15 @@ print "Estimated utility: " . ($estimatedUtility / 1000.0) . "\n";
 print "Estimated time: " . $estimatedTime . "s\n";
 print "Extra utility: " . ($extraUtility / 1000.0) . "\n";
 
-createTask('Read mails', $estimatedUtility, $estimatedTime);
-createTask('Read important mails', $extraUtility, 120);
+createTask('Read mails', $estimatedUtility, $estimatedTime, 1);
+createTask('Read important mails', $extraUtility, 120, 0);
 
 if(@errors) {
   # createTask("Fix import-mails: @errors", 1000000, 1800);
 }
 
 sub createTask {
-  my ($title, $estimatedUtility, $estimatedTime) = @_;
+  my ($title, $estimatedUtility, $estimatedTime, $eveningOnly) = @_;
 
   my $author = 'mailto://drahflow@gmx.de';
   my $publication = PUBLICATION_PRIVATE;
@@ -130,6 +130,11 @@ EOSQL
     dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
     INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
 EOSQL
+    if($eveningOnly) {
+      dbh()->do(<<EOSQL, {}, $gid, "1mulhours:00:00+1200;0");
+      INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+    }
     dbh()->do(<<EOSQL, {}, $estimatedTime, $now, $gid);
     UPDATE task SET seconds_estimate = ?, last_edit = ? WHERE gid = ?
 EOSQL
@@ -143,6 +148,11 @@ EOSQL
     dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
     INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
 EOSQL
+    if($eveningOnly) {
+      dbh()->do(<<EOSQL, {}, $gid, "1mulhours:00:00+1200;0");
+      INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+    }
 
     print "created: $gid\n";
   }

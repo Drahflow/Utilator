@@ -48,6 +48,9 @@ EOSQL
     dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
     INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
 EOSQL
+    dbh()->do(<<EOSQL, {}, $gid, "1mulhours:00:00+1200;0");
+    INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
     dbh()->do(<<EOSQL, {}, $estimatedTime, $now, $gid);
     UPDATE task SET seconds_estimate = ?, last_edit = ? WHERE gid = ?
 EOSQL
@@ -59,6 +62,9 @@ EOSQL
     INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 EOSQL
     dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($estimatedUtility));
+    INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
+EOSQL
+    dbh()->do(<<EOSQL, {}, $gid, "1mulhours:00:00+1200;0");
     INSERT INTO task_utility (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
 EOSQL
 
