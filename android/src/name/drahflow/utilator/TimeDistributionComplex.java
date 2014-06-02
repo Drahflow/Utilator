@@ -49,7 +49,7 @@ public final class TimeDistributionComplex extends TimeDistribution {
 				if(r.start <= minutesSinceDayStart && minutesSinceDayStart < r.end) return value * multiplier / 1000;
 			}
 
-			return 0;
+			return value;
 		}
 	}
 
@@ -65,7 +65,7 @@ public final class TimeDistributionComplex extends TimeDistribution {
 				return value * multiplier / 1000;
 			}
 
-			return 0;
+			return value;
 		}
 	}
 
