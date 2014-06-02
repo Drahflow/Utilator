@@ -20,7 +20,6 @@ my %pullFor = Settings::getRedminePullFor();
 my %utilities = Settings::getRedmineUtilities();
 my %locations = Settings::getRedmineLocations();
 
-
 my $project = $ARGV[0] or die help();
 my $base = $names{$project} or die "No such project configured: $project";
 my $externalBase = 'redmine://' . [$base->{'issues'} =~ m!^https://(.*)$!]->[0];
@@ -57,6 +56,7 @@ if($action eq "pull") {
 
   foreach my $issue (@issues) {
     next if($issue->{'assigned_to'} and not $pullFor{$issue->{'assigned_to'}->{'name'}});
+    # print Dumper($issue) if ($issue->{'assigned_to'});
     next if($issue->{'start_date'} gt $now);
     next if($issue->{'status'}->{'name'} eq 'Erledigt');
     next if($issue->{'status'}->{'name'} eq 'Fehlgeschlagen');
@@ -78,6 +78,10 @@ EOSQL
 
       if($status < 0 or $status >= 100) {
         $status = 0;
+      }
+
+      if(defined $seconds_estimate and $seconds_estimate < 180) {
+        $seconds_estimate = 180;
       }
 
       if(not defined $seconds_estimate) {
@@ -119,6 +123,10 @@ EOSQL
 
       if($status < 0 or $status >= 100) {
         $status = 0;
+      }
+
+      if(defined $seconds_estimate and $seconds_estimate < 180) {
+        $seconds_estimate = 180;
       }
 
       if(not defined $seconds_estimate) {
@@ -197,7 +205,10 @@ sub verifyCert {
 
   my $sha512 = sha512_hex(Net::SSLeay::PEM_get_string_X509($_[4]));
 
-  # warn $sha512;
+  unless(exists $goodCerts{$sha512}) {
+    warn "Unknown cert - aborting connect: " . $sha512;
+  }
+
   # modify this line depending on how you would like your certificate to be checked
   return $goodCerts{$sha512} and $sslLibThinksOk;
 }
