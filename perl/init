@@ -136,6 +136,7 @@ dbh()->do(<<EOSQL);
 CREATE INDEX task_external_idx ON task_external (task);
 EOSQL
 
+# TODO: Table names should be singular
 dbh()->do(<<EOSQL);
 CREATE TABLE expectation_utilities (
   id INTEGER PRIMARY KEY,

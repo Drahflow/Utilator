@@ -1,0 +1,128 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use encoding 'utf-8';
+
+use Global qw(/./);
+use Query qw(/./);
+use Configuration;
+use Data::Dumper;
+
+my $action = $ARGV[0] or die help();
+
+if($action eq 'create') {
+  my $gid = create_gid();
+  my $author = 'mailto://' . Settings::getEmail();
+  my $title = $ARGV[1] or die help();
+  my $publication = PUBLICATION_PRIVATE;
+  my $now = iso_full_date(time);
+
+  dbh()->do(<<EOSQL, {}, $gid, $author, $title, $publication, 0, $now);
+  INSERT INTO expectation (gid, author, title, publication, value, last_calculated) VALUES (?, ?, ?, ?, ?, ?)
+EOSQL
+
+  dbh()->disconnect();
+
+  print "$gid\n";
+} elsif($action eq 'delete') {
+  my $exp = $ARGV[1] or die help();
+  my $expectation = resolveExpectation($exp);
+
+  print Dumper($expectation);
+
+  dbh()->do(<<EOSQL, {}, $expectation->{'gid'});
+  DELETE FROM expectation WHERE gid = ?
+EOSQL
+} elsif($action eq 'query') {
+  my $expectations = Query::expectations();
+
+  foreach my $e (@$expectations) {
+    printf "%s %8.3f => %8.3f: %s\n", $e->{'gid'}, $e->{'current_value'} / 1000,
+      $e->{'current_utility'} / 1000, $e->{'title'};
+  }
+} elsif($action eq 'dump') {
+  my $exp = $ARGV[1] or die help();
+  my $expectation = resolveExpectation($exp);
+
+  print Dumper($expectation);
+
+  my $utilities = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $expectation->{'id'});
+  SELECT * FROM expectation_utilities WHERE expectation = ?
+EOSQL
+
+  print "\n-- utilities --\n";
+  print Dumper($utilities);
+} elsif($action eq 'util') {
+  my $exp = $ARGV[1] or die help();
+  my $gid = resolveExpectation($exp)->{'gid'};
+
+  my $type = $ARGV[2] or die help();
+  if($type eq 'clear') {
+    dbh()->do(<<EOSQL, {}, $gid);
+    DELETE FROM expectation_utilities WHERE expectation = (SELECT id FROM expectation WHERE gid = ?)
+EOSQL
+  } elsif($type eq 'flat') {
+    my $min = $ARGV[3];
+    my $max = $ARGV[4];
+    my $utility = $ARGV[5];
+
+    die help() unless defined $min and defined $max and defined $utility;
+
+    dbh()->do(<<EOSQL, {}, $gid, "0flat:" . int($min * 1000) . ";" . int($max * 1000) . ";" . int($utility * 1000));
+    INSERT INTO expectation_utilities (expectation, distribution) VALUES (
+      (SELECT id FROM expectation WHERE gid = ?), ?
+    )
+EOSQL
+  } elsif($type eq 'linear') {
+    my $min = $ARGV[3];
+    my $utilityMin = $ARGV[4];
+    my $max = $ARGV[5];
+    my $utilityMax = $ARGV[6];
+
+    die help() unless defined $min and defined $max and defined $utilityMin and defined $utilityMax;
+
+    dbh()->do(<<EOSQL, {}, $gid, "0linear:" . int($min * 1000) . ";" . int($max * 1000) . ";" . int($utilityMin * 1000) . ";" . int($utilityMax * 1000));
+    INSERT INTO expectation_utilities (expectation, distribution) VALUES (
+      (SELECT id FROM expectation WHERE gid = ?), ?
+    )
+EOSQL
+  } else {
+    print STDERR "unknown utility type: $type\n";
+    die help();
+  }
+} elsif($action eq 'set') {
+  my $exp = $ARGV[1] or die help();
+  my $expectation = resolveExpectation($exp);
+  my $now = iso_full_date(time);
+
+  my $value = interpretUnitExact($ARGV[2]) / 3.6;
+
+  dbh()->do(<<EOSQL, {}, $value, $now, $expectation->{'gid'});
+  UPDATE expectation SET value = ?, last_calculated = ? WHERE gid = ?
+EOSQL
+} else {
+  print STDERR "unknown action: $action\n";
+  die help();
+}
+
+sub help {
+  return <<EOTXT
+expectation query
+  - query current expectation values
+expectation dump <gid / title>
+  - dump expectation details
+expectation create <title>
+  - create new expectation
+expectation set <gid / title> <duration>
+  - explicitely set the current value of the expectation, e.g. when it was last reset
+expectation util <gid / title> clear
+  - clear utility definitions
+expectation util <gid / title> flat <min> <max> <utility>
+  - create utility plateau
+expectation util <gid / title> linear <min> <utility @ min> <max> <utility @ max>
+  - create utility gradient
+expectation delete <gid / title>
+  - delete expectation
+EOTXT
+}

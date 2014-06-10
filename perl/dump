@@ -44,6 +44,11 @@ EOSQL
   print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
   SELECT e.external, e.task FROM task_external e JOIN task t ON t.id = e.task WHERE t.gid = ?
 EOSQL
+
+  print "\n-- expectation effects --\n";
+  print Dumper(dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'}));
+  SELECT te.effect, e.gid, e.title FROM task_effect te JOIN expectation e ON e.id = te.expectation JOIN task t ON t.id = te.task WHERE t.gid = ?
+EOSQL
 }
 
 sub help {

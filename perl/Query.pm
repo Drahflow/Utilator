@@ -2,7 +2,7 @@ package Query;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(sortedTasks fetch_space_active);
+@EXPORT_OK = qw(sortedTasks fetch_space_active expectations resolveExpectation);
 
 use strict;
 use warnings;
@@ -279,6 +279,67 @@ EOSQL
   }
 
   return $space_active_by_dimension;
+}
+
+sub resolveExpectation {
+  my ($identifier) = @_;
+
+  my $gidResolve = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $identifier);
+  SELECT * FROM expectation WHERE gid = ?
+EOSQL
+  return $gidResolve->[0] if(@$gidResolve);
+
+  my $titleResolve = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $identifier);
+  SELECT * FROM expectation WHERE title = ?
+EOSQL
+  return $titleResolve->[0] if(@$titleResolve);
+
+  die "could not find any such expectation, maybe try expectation query?";
+}
+
+sub expectations {
+  my $expectations = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} });
+  SELECT * FROM expectation
+EOSQL
+  my $expUtilities = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} });
+  SELECT * FROM expectation_utilities
+EOSQL
+  my %expectations;
+  foreach my $e (@$expectations) {
+    $expectations{$e->{'id'}} = $e;
+  }
+
+  foreach my $exp (@$expUtilities) {
+    push @{$expectations{$exp->{'expectation'}}->{'utilities'}}, $exp;
+  }
+
+  foreach my $e (@$expectations) {
+    $e->{'current_value'} = $e->{'value'} + (time() - str2time($e->{'last_calculated'})) / 3.6; # 1000 per hour
+    $e->{'current_utility'} = evaluate_expectation_utility($e->{'current_value'}, $e->{'utilities'});
+  }
+
+  return $expectations;
+}
+
+sub evaluate_expectation_utility {
+  my ($value, $utilities) = @_;
+
+  my $utility = 0;
+  my @utilities = sort { $a->{'distribution'} cmp $b->{'distribution'} } @$utilities;
+
+  foreach my $u (@utilities) {
+    if($u->{'distribution'} =~ /^.flat:(\d+);(\d+);(\d+)/) {
+      if($value >= $1 and $value < $2) {
+        $utility = $3;
+      }
+    } elsif($u->{'distribution'} =~ /^.linear:(\d+);(\d+);(\d+);(\d+)/) {
+      if($value >= $1 and $value < $2) {
+        $utility = $3 + ($value - $1) / ($2 - $1) * ($4 - $3);
+      }
+    }
+  }
+
+  return $utility;
 }
 
 1;
