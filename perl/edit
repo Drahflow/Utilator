@@ -19,10 +19,12 @@ my $now = iso_full_date(time);
 my $gid = $task->{'gid'};
 
 if($what eq 'done') {
+  enterLocations();
+  applyExpectationEffects();
+
   dbh()->do(<<EOSQL, {}, $now, $now, $gid);
   UPDATE task SET status = 100, last_edit = ?, closed_at = ? WHERE gid = ?
 EOSQL
-  enterLocations();
 } elsif($what eq 'enter') {
   enterLocations();
 } elsif($what eq 'status') {
@@ -100,6 +102,21 @@ EOSQL
   dbh()->do(<<EOSQL, {}, $gid, $ARGV[2]);
   INSERT INTO task_likelyhood_space (task, distribution) VALUES ((SELECT id FROM task WHERE gid = ?), ?)
 EOSQL
+} elsif($what eq 'eff') {
+  my $expectation = Query::resolveExpectation($ARGV[2]) or die help();
+  my $what2 = $ARGV[3] or die help();
+
+  if($what2 eq 'del') {
+    dbh()->do(<<EOSQL, {}, $task->{'id'}, $expectation->{'id'});
+    DELETE FROM task_effect WHERE task = ? AND expectation = ?
+EOSQL
+  } elsif($what2 eq 'reset') {
+    dbh()->do(<<EOSQL, {}, $task->{'id'}, $expectation->{'id'});
+    INSERT INTO task_effect (task, expectation, effect) VALUES (?, ?, '0set:0')
+EOSQL
+  } else {
+    die help();
+  }
 } else {
   die help();
 }
@@ -112,16 +129,18 @@ print "edited: $gid\n";
 sub help {
   return <<EOTXT
 ./edit <task gid / 'c'> <...>
-  done               - complete task
-  enter              - enter all locations associated with task
-  wait <time>        - task impossible for the next <time>
-  wait_until <date>  - task impossible until specified <date>
-  est <time>         - set new time estimate
-  title <title>      - set new title
-  desc <description> - set new description
-  util <utility>     - set new (constant) utility
-  pub [L|P|M|T|O]    - set new publication state: Local, Private, Masked, Transparent, Offer
-  loc <location>     - adds a location dependency, only one per dimension
+  done                     - complete task
+  enter                    - enter all locations associated with task
+  wait <time>              - task impossible for the next <time>
+  wait_until <date>        - task impossible until specified <date>
+  est <time>               - set new time estimate
+  title <title>            - set new title
+  desc <description>       - set new description
+  util <utility>           - set new (constant) utility
+  pub [L|P|M|T|O]          - set new publication state: Local, Private, Masked, Transparent, Offer
+  loc <location>           - add a location dependency, only one per dimension
+  eff <gid / title> del    - removes all effects on given expectation
+  eff <gid / title> reset  - add an expectation effect, namely full reset
 EOTXT
 }
 
@@ -154,5 +173,23 @@ EOSQL
     dbh()->do(<<EOSQL, {}, $now, $row->{'distribution'});
     UPDATE space_active SET reached_at = ? WHERE name = ?
 EOSQL
+  }
+}
+
+sub applyExpectationEffects {
+  my $effects = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'id'});
+  SELECT * FROM task_effect WHERE task = ?
+EOSQL
+
+  foreach my $effect (@$effects) {
+    if($effect->{'effect'} =~ /.set:(\d+)$/) {
+      my $value = $1;
+      dbh()->do(<<EOSQL, {}, $value, iso_full_date(time), $effect->{'expectation'});
+      UPDATE expectation SET value = ?, last_calculated = ? WHERE id = ?
+EOSQL
+    } else {
+      warn "Unknown expectation effect specified: $effect->{'effect'}";
+      return 0;
+    }
   }
 }

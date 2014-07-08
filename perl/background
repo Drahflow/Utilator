@@ -8,4 +8,5 @@ while sleep 600; do
   sync-38020
   import-mail
   redmine ratbs pull
+  /home/drahflow/monitoring/monitor || create 'Fix broken stuff (reported by monitoring)' 2 3m
 done

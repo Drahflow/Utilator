@@ -17,6 +17,8 @@ use Data::Dumper;
 my %utility;
 my %likelyhood_time;
 my %likelyhood_space;
+my %task_effect;
+my %expectations;
 
 sub resolveTask($) {
   my ($task) = (@_);
@@ -83,6 +85,8 @@ sub sortedTasks {
 
   %utility = ();
   %likelyhood_time = ();
+
+  expectations();
 
   my @utility = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })};
   SELECT u.distribution, u.task FROM task_utility u JOIN task t ON t.id = u.task WHERE t.status < 100
@@ -174,10 +178,11 @@ sub evaluate_utility {
     }
 
     my $utility = evaluate_time_distribution($now, 0, ($utility{$task->{'id'}} or []));
+    my $expectation_utility = evaluate_expectation_effect_utility(str2time($now) + $time_estimate, $task_effect{$task->{'id'}});
     my $likelyhood_time = evaluate_time_distribution($now, 990, ($likelyhood_time{$task->{'id'}} or []));
     my $movement_time = evaluate_space_movement($now, ($likelyhood_space{$task->{'id'}} or []));
 
-    $task->{'current_utility'} = $utility * $likelyhood_time / ($time_estimate + $movement_time) / 1000000;
+    $task->{'current_utility'} = ($utility + $expectation_utility) * $likelyhood_time / ($time_estimate + $movement_time) / 1000000;
   }
   
   return $task;
@@ -198,7 +203,7 @@ sub evaluate_time_distribution {
       }
     } elsif($spec =~ /^.mulhours:(\d+):(\d+)\+(\d+);(.+)/) {
       my $start = $1 * 60 + $2;
-      my $end = $start + $3;
+      my $end = $start + 60 * $3;
       my $multiplier = $4;
       my (undef, undef, undef, $hour, $minute) = localtime(str2time($time));
       my $minuteOfDay = $hour * 60 + $minute;
@@ -298,13 +303,15 @@ EOSQL
 }
 
 sub expectations {
+  %expectations = ();
+
   my $expectations = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} });
   SELECT * FROM expectation
 EOSQL
   my $expUtilities = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} });
   SELECT * FROM expectation_utilities
 EOSQL
-  my %expectations;
+
   foreach my $e (@$expectations) {
     $expectations{$e->{'id'}} = $e;
   }
@@ -314,8 +321,17 @@ EOSQL
   }
 
   foreach my $e (@$expectations) {
-    $e->{'current_value'} = $e->{'value'} + (time() - str2time($e->{'last_calculated'})) / 3.6; # 1000 per hour
-    $e->{'current_utility'} = evaluate_expectation_utility($e->{'current_value'}, $e->{'utilities'});
+    expectation_value($e, time);
+  }
+
+  %task_effect = ();
+
+  my $task_effect = dbh()->selectall_arrayref(<<EOSQL, { Slice => {} });
+  SELECT * FROM task_effect
+EOSQL
+
+  foreach my $ee (@$task_effect) {
+    push @{$task_effect{$ee->{'task'}}}, $ee;
   }
 
   return $expectations;
@@ -340,6 +356,40 @@ sub evaluate_expectation_utility {
   }
 
   return $utility;
+}
+
+sub evaluate_expectation_effect_utility {
+  my ($now, $effects) = @_;
+
+  my $utility = 0;
+
+  foreach my $effect (@$effects) {
+    my $expectation = $expectations{$effect->{'expectation'}};
+
+    my $value = expectation_value($expectation, $now);
+
+    my $before = evaluate_expectation_utility($value, $expectation->{'utilities'});
+    if($effect->{'effect'} =~ /.set:(\d+)$/) {
+      $value = $1;
+    } else {
+      warn "Unknown expectation effect specified: $effect->{'effect'}";
+      return 0;
+    }
+    my $after = evaluate_expectation_utility($value, $expectation->{'utilities'});
+
+    $utility += $after - $before;
+  }
+
+  return $utility;
+}
+
+sub expectation_value {
+  my ($e, $time) = @_;
+
+  $e->{'current_value'} = $e->{'value'} + ($time - str2time($e->{'last_calculated'})) / 3.6; # 1000 per hour
+  $e->{'current_utility'} = evaluate_expectation_utility($e->{'current_value'}, $e->{'utilities'});
+
+  return $e->{'current_value'};
 }
 
 1;
