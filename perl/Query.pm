@@ -178,7 +178,7 @@ sub evaluate_utility {
     }
 
     my $utility = evaluate_time_distribution($now, 0, ($utility{$task->{'id'}} or []));
-    my $expectation_utility = evaluate_expectation_effect_utility(str2time($now) + $time_estimate, $task_effect{$task->{'id'}});
+    my $expectation_utility = evaluate_expectation_effect_utility(str2time($now), $task_effect{$task->{'id'}});
     my $likelyhood_time = evaluate_time_distribution($now, 990, ($likelyhood_time{$task->{'id'}} or []));
     my $movement_time = evaluate_space_movement($now, ($likelyhood_space{$task->{'id'}} or []));
 
