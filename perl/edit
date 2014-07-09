@@ -22,9 +22,11 @@ if($what eq 'done') {
   enterLocations();
   applyExpectationEffects();
 
-  dbh()->do(<<EOSQL, {}, $now, $now, $gid);
-  UPDATE task SET status = 100, last_edit = ?, closed_at = ? WHERE gid = ?
+  if(not $task->{'recurring'}) {
+    dbh()->do(<<EOSQL, {}, $now, $now, $gid);
+    UPDATE task SET status = 100, last_edit = ?, closed_at = ? WHERE gid = ?
 EOSQL
+  }
 } elsif($what eq 'enter') {
   enterLocations();
 } elsif($what eq 'status') {
@@ -88,6 +90,13 @@ EOSQL
 } elsif($what eq 'wait') {
   my $delta = $ARGV[2] or die help();
   enwaitTask($task, time + interpretUnitExact($delta));
+} elsif($what eq 'recurring') {
+  my $yes = $ARGV[2];
+  die help() unless $yes eq '1' or $yes eq '0';
+
+  dbh()->do(<<EOSQL, {}, $yes, $gid);
+  UPDATE task SET recurring = ? WHERE gid = ?
+EOSQL
 } elsif($what eq 'loc') {
   my @rows = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $ARGV[2])};
   SELECT * FROM space_active WHERE name = ?
@@ -141,6 +150,7 @@ sub help {
   loc <location>           - add a location dependency, only one per dimension
   eff <gid / title> del    - removes all effects on given expectation
   eff <gid / title> reset  - add an expectation effect, namely full reset
+  recurring [0|1]          - resets/sets task as recurring
 EOTXT
 }
 

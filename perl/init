@@ -18,7 +18,8 @@ CREATE TABLE task (
   status INTEGER,
   closed_at TEXT,
   publication INTEGER,
-  last_edit TEXT
+  last_edit TEXT,
+  recurring INTEGER
 );
 EOSQL
 
