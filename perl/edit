@@ -72,7 +72,8 @@ EOSQL
   UPDATE task SET publication = ?, last_edit = ? WHERE gid = ?
 EOSQL
 } elsif($what eq 'util') {
-  my $new = $ARGV[2] or die help();
+  my $new = $ARGV[2];
+  die help() unless defined $new;
 
   dbh()->do(<<EOSQL, {}, $gid, "0constant:" . int($new * 1000));
   DELETE FROM task_utility WHERE task = (SELECT id FROM task WHERE gid = ?)

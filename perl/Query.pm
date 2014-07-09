@@ -368,14 +368,14 @@ sub evaluate_expectation_effect_utility {
 
     my $value = expectation_value($expectation, $now);
 
-    my $before = evaluate_expectation_utility($value, $expectation->{'utilities'});
+    my $before = evaluate_expectation_utility($value, ($expectation->{'utilities'} or []));
     if($effect->{'effect'} =~ /.set:(\d+)$/) {
       $value = $1;
     } else {
       warn "Unknown expectation effect specified: $effect->{'effect'}";
       return 0;
     }
-    my $after = evaluate_expectation_utility($value, $expectation->{'utilities'});
+    my $after = evaluate_expectation_utility($value, ($expectation->{'utilities'} or []));
 
     $utility += $after - $before;
   }
@@ -387,7 +387,7 @@ sub expectation_value {
   my ($e, $time) = @_;
 
   $e->{'current_value'} = $e->{'value'} + ($time - str2time($e->{'last_calculated'})) / 3.6; # 1000 per hour
-  $e->{'current_utility'} = evaluate_expectation_utility($e->{'current_value'}, $e->{'utilities'});
+  $e->{'current_utility'} = evaluate_expectation_utility($e->{'current_value'}, ($e->{'utilities'} or []));
 
   return $e->{'current_value'};
 }
