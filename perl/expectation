@@ -101,6 +101,17 @@ EOSQL
   dbh()->do(<<EOSQL, {}, $value, $now, $expectation->{'gid'});
   UPDATE expectation SET value = ?, last_calculated = ? WHERE gid = ?
 EOSQL
+} elsif($action eq 'add') {
+  my $exp = $ARGV[1] or die help();
+  my $expectation = resolveExpectation($exp);
+  my $now = iso_full_date(time);
+
+  my $value = Query::expectation_value($expectation, time);
+  $value += interpretUnitExact($ARGV[2]) / 3.6;
+
+  dbh()->do(<<EOSQL, {}, $value, $now, $expectation->{'gid'});
+  UPDATE expectation SET value = ?, last_calculated = ? WHERE gid = ?
+EOSQL
 } else {
   print STDERR "unknown action: $action\n";
   die help();
@@ -116,6 +127,8 @@ expectation create <title>
   - create new expectation
 expectation set <gid / title> <duration>
   - explicitely set the current value of the expectation, e.g. when it was last reset
+expectation add <gid / title> <duration>
+  - adds to the current value of the expectation
 expectation util <gid / title> clear
   - clear utility definitions
 expectation util <gid / title> flat <min> <max> <utility>

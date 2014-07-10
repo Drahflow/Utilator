@@ -2,11 +2,21 @@
 
 daily-websites
 
-while sleep 600; do
-  echo -n "Starting background run for "; date
+(
+  while sleep 600; do
+    echo -n "Starting background run for "; date
 
-  sync-38020
-  import-mail
-  redmine ratbs pull
-  /home/drahflow/monitoring/monitor || create 'Fix broken stuff (reported by monitoring)' 2 3m
-done
+    sync-38020
+    import-mail
+    redmine ratbs pull
+    /home/drahflow/monitoring/monitor || create 'Fix broken stuff (reported by monitoring)' 2 3m
+  done
+) &
+
+(
+  while sleep 10; do
+    echo -n "Adjusting expectations"; date
+
+    adjust-expectation
+  done
+) &
