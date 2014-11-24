@@ -16,6 +16,15 @@ my $seconds_estimate = interpretUnit($seconds_estimate_str);
 my $publication = PUBLICATION_PRIVATE;
 my $now = iso_full_date(time);
 
+my @existing = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $title)};
+SELECT gid FROM task WHERE title = ?
+EOSQL
+
+if(@existing) {
+  my $gid = $existing[0]->{'gid'};
+  die "$gid has the exact same title";
+}
+
 dbh()->do(<<EOSQL, {}, $gid, $author, $title, $seconds_estimate, 0, 0, $publication, $now);
 INSERT INTO task (gid, author, title, seconds_estimate, seconds_taken, status, publication, last_edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 EOSQL
