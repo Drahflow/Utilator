@@ -140,6 +140,7 @@ sub help {
   return <<EOTXT
 ./edit <task gid / 'c'> <...>
   done                     - complete task
+  status <percentage>      - set task completion to given percentage
   enter                    - enter all locations associated with task
   wait <time>              - task impossible for the next <time>
   wait_until <date>        - task impossible until specified <date>
