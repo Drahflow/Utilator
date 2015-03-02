@@ -1,0 +1,152 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Global qw(/./);
+use Query qw(/./);
+use Data::Dumper;
+
+my $action = $ARGV[0] or die help();
+
+if($action eq 'play') {
+  while(1) {
+    Query::resetCaches();
+    my $task = Query::resolveTask('c');
+
+    my @songs = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $task->{'gid'})};
+    SELECT task_gid, filename FROM music_songs WHERE task_gid = ? ORDER BY last_played ASC LIMIT 10
+EOSQL
+
+    unless(@songs) {
+      my @spaces = map { $_->{'name'} } values %{fetch_space_active(iso_full_date(time))};
+      foreach my $space (@spaces) {
+        push @songs, @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} }, $space)};
+        SELECT space_name, filename FROM music_songs WHERE space_name = ? ORDER BY last_played ASC LIMIT 10
+EOSQL
+      }
+    }
+
+    unless(@songs) {
+      push @songs, @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })};
+      SELECT filename FROM music_songs WHERE space_name IS NULL AND task_gid IS NULL ORDER BY last_played ASC LIMIT 10
+EOSQL
+    }
+
+    unless(@songs) {
+      die "No songs available for current task, location and in general."
+    }
+
+    my $song = @songs[int(rand() * @songs)];
+
+    if(exists $song->{'task_gid'}) {
+      dbh()->do(<<EOSQL, {}, iso_full_date(time), $song->{'task_gid'}, $song->{'filename'});
+      UPDATE music_songs SET last_played = ?
+      WHERE task_gid = ? AND filename = ?
+EOSQL
+    } elsif(exists $song->{'space_name'}) {
+      dbh()->do(<<EOSQL, {}, iso_full_date(time), $song->{'space_name'}, $song->{'filename'});
+      UPDATE music_songs SET last_played = ?
+      WHERE space_name = ? AND filename = ?
+EOSQL
+    } else {
+      dbh()->do(<<EOSQL, {}, iso_full_date(time), $song->{'filename'});
+      UPDATE music_songs SET last_played = ?
+      WHERE space_name IS NULL AND task_gid IS NULL AND filename = ?
+EOSQL
+    }
+
+    my $ret = system("mplayer", "-vo", "null", $song->{'filename'});
+    last if $ret;
+  }
+} elsif($action eq 'list') {
+  my @rows = @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })};
+  SELECT * FROM music_songs
+EOSQL
+
+  foreach my $row (@rows) {
+    printf "%11s %36s %20s %s\n", ($row->{'last_played'} or '-'), ($row->{'task_gid'} or '-'),
+      ($row->{'space_name'} or '-'), $row->{'filename'};
+  }
+} elsif($action eq 'add') {
+  my $filename = undef;
+  my $task = undef;
+  if(@ARGV == 2) {
+    $filename = $ARGV[1];
+  } elsif(@ARGV == 3) {
+    $task = Query::resolveTask($ARGV[1]);
+    $filename = $ARGV[2];
+  } else {
+    die help();
+  }
+
+  dbh()->do(<<EOSQL, {}, iso_full_date(0), $filename, $task->{'gid'})
+  INSERT INTO music_songs (last_played, filename, task_gid) VALUES (?, ?, ?);
+EOSQL
+} elsif($action eq 'add_loc') {
+  my $location = $ARGV[1];
+  my $filename = $ARGV[2];
+
+  dbh()->do(<<EOSQL, {}, iso_full_date(0), $filename, $location)
+  INSERT INTO music_songs (last_played, filename, space_name) VALUES (?, ?, ?);
+EOSQL
+} elsif($action eq 'del') {
+  if(@ARGV == 2) {
+    my $filename = $ARGV[1];
+
+    dbh()->do(<<EOSQL, {}, $filename);
+    DELETE FROM music_songs
+    WHERE task_gid IS NULL
+      AND space_name IS NULL
+      AND filename = ?
+EOSQL
+  } elsif(@ARGV == 3) {
+    my $task = Query::resolveTask($ARGV[1]);
+    my $filename = $ARGV[2];
+
+    if($filename eq 'all') {
+      dbh()->do(<<EOSQL, {}, $task->{'gid'});
+      DELETE FROM music_songs
+      WHERE task_gid = ?
+EOSQL
+    } else {
+      dbh()->do(<<EOSQL, {}, $task->{'gid'}, $filename);
+      DELETE FROM music_songs
+      WHERE task_gid = ?
+        AND filename = ?
+EOSQL
+    }
+  } else {
+    die help();
+  }
+} elsif($action eq 'del_loc') {
+  my $location = $ARGV[1];
+  my $filename = $ARGV[2];
+
+  dbh()->do(<<EOSQL, {}, $filename, $location)
+  DELETE FROM music_songs
+  WHERE filename = ?
+    AND space_name = ?
+EOSQL
+} else {
+  die help();
+}
+
+sub help {
+  return <<EOTXT
+./act-music <action> <...>
+  play                      - start playing music
+  list                      - list all songs last playing at bottom
+  list <task>               - list all songs associated to a task
+  list_loc <location>       - list all songs associated to a location
+  add <file>                - add a song as generally available
+  add <task> <file>         - add a song as specific for a task
+  add_loc <location> <file> - add a song as specific for a location
+  del <file>                - delete a song as generally available
+  del <task> <file>         - delete a song as specific for a task
+  del <task> all            - delete all songs associated with a task
+  del_loc <location> <file> - delete a song as specific for a location
+
+Plays music selected based on current task
+EOTXT
+}

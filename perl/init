@@ -171,4 +171,13 @@ dbh()->do(<<EOSQL);
 INSERT INTO task_edit_last (gid) VALUES (NULL);
 EOSQL
 
+dbh()->do(<<EOSQL);
+CREATE TABLE music_songs (
+  filename TEXT,
+  last_played TEXT,
+  task_gid BLOB,
+  space_name TEXT
+);
+EOSQL
+
 dbh()->disconnect();

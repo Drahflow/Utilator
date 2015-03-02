@@ -51,7 +51,7 @@ EOSQL
   SELECT * FROM expectation_utilities WHERE expectation = ?
 EOSQL
 
-  print "\n-- utilities --\n";
+  print "\n-- utilities (expectation increases by 1000/h) --\n";
   print Dumper($utilities);
 } elsif($action eq 'util') {
   my $exp = $ARGV[1] or die help();
@@ -63,26 +63,26 @@ EOSQL
     DELETE FROM expectation_utilities WHERE expectation = (SELECT id FROM expectation WHERE gid = ?)
 EOSQL
   } elsif($type eq 'flat') {
-    my $min = $ARGV[3];
-    my $max = $ARGV[4];
+    my $min = interpretUnitExact($ARGV[3]) / 3.6;
+    my $max = interpretUnitExact($ARGV[4]) / 3.6;
     my $utility = $ARGV[5];
 
     die help() unless defined $min and defined $max and defined $utility;
 
-    dbh()->do(<<EOSQL, {}, $gid, "0flat:" . int($min * 1000) . ";" . int($max * 1000) . ";" . int($utility * 1000));
+    dbh()->do(<<EOSQL, {}, $gid, "0flat:" . int($min) . ";" . int($max) . ";" . int($utility * 1000));
     INSERT INTO expectation_utilities (expectation, distribution) VALUES (
       (SELECT id FROM expectation WHERE gid = ?), ?
     )
 EOSQL
   } elsif($type eq 'linear') {
-    my $min = $ARGV[3];
+    my $min = interpretUnitExact($ARGV[3]) / 3.6;
     my $utilityMin = $ARGV[4];
-    my $max = $ARGV[5];
+    my $max = interpretUnitExact($ARGV[5]) / 3.6;
     my $utilityMax = $ARGV[6];
 
     die help() unless defined $min and defined $max and defined $utilityMin and defined $utilityMax;
 
-    dbh()->do(<<EOSQL, {}, $gid, "0linear:" . int($min * 1000) . ";" . int($max * 1000) . ";" . int($utilityMin * 1000) . ";" . int($utilityMax * 1000));
+    dbh()->do(<<EOSQL, {}, $gid, "0linear:" . int($min) . ";" . int($max) . ";" . int($utilityMin * 1000) . ";" . int($utilityMax * 1000));
     INSERT INTO expectation_utilities (expectation, distribution) VALUES (
       (SELECT id FROM expectation WHERE gid = ?), ?
     )

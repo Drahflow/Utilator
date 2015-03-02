@@ -2,7 +2,7 @@ package Query;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(sortedTasks fetch_space_active expectations resolveExpectation);
+@EXPORT_OK = qw(sortedTasks fetch_space_active expectations resolveExpectation resetCaches);
 
 use strict;
 use warnings;
@@ -19,6 +19,20 @@ my %likelyhood_time;
 my %likelyhood_space;
 my %task_effect;
 my %expectations;
+
+my $space_active_by_dimension;
+my $space_topology;
+
+sub resetCaches() {
+  %utility = ();
+  %likelyhood_time = ();
+  %likelyhood_space = ();
+  %task_effect = ();
+  %expectations = ();
+
+  $space_active_by_dimension = undef;
+  $space_topology = undef;
+}
 
 sub resolveTask($) {
   my ($task) = (@_);
@@ -217,9 +231,6 @@ sub evaluate_time_distribution {
 
   return $value;
 }
-
-my $space_active_by_dimension;
-my $space_topology;
 
 sub evaluate_space_movement {
   my ($time, $spec) = @_;
