@@ -18,6 +18,8 @@ if($action eq 'play') {
     SELECT task_gid, filename FROM music_songs WHERE task_gid = ? ORDER BY last_played ASC LIMIT 10
 EOSQL
 
+    @songs = grep { -r $_->{'filename'} } @songs;
+
     unless(@songs) {
       my @spaces = map { $_->{'name'} } values %{fetch_space_active(iso_full_date(time))};
       foreach my $space (@spaces) {
@@ -27,11 +29,15 @@ EOSQL
       }
     }
 
+    @songs = grep { -r $_->{'filename'} } @songs;
+
     unless(@songs) {
       push @songs, @{dbh()->selectall_arrayref(<<EOSQL, { Slice => {} })};
       SELECT filename FROM music_songs WHERE space_name IS NULL AND task_gid IS NULL ORDER BY last_played ASC LIMIT 10
 EOSQL
     }
+
+    @songs = grep { -r $_->{'filename'} } @songs;
 
     unless(@songs) {
       die "No songs available for current task, location and in general."
