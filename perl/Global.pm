@@ -48,7 +48,7 @@ sub iso_full_date($) {
 sub interpretUnit {
   my ($str) = @_;
   
-  $str =~ /(?'amount'[0-9.]+)\s*(?'unit'[wdhms])/ or die "bad time spec: $str";
+  $str =~ /(?'amount'[0-9.]+)\s*(?'unit'[ywdhms])/ or die "bad time spec: $str";
 
   return $+{'amount'} * {
       's' => 1,
@@ -56,13 +56,14 @@ sub interpretUnit {
       'h' => 60 * 60,
       'd' => 60 * 60 * 12,
       'w' => 60 * 60 * 10 * 7,
+      'y' => 60 * 60 * 8 * 240,
     }->{$+{'unit'}};
 }
 
 sub interpretUnitExact {
   my ($str) = @_;
   
-  $str =~ /(?'amount'[0-9.]+)\s*(?'unit'[wdhms])/ or die "bad time spec: $str";
+  $str =~ /(?'amount'[0-9.]+)\s*(?'unit'[ywdhms])/ or die "bad time spec: $str";
 
   return $+{'amount'} * {
       's' => 1,
@@ -70,6 +71,7 @@ sub interpretUnitExact {
       'h' => 60 * 60,
       'd' => 60 * 60 * 24,
       'w' => 60 * 60 * 24 * 7,
+      'y' => 60 * 60 * 24 * 356,
     }->{$+{'unit'}};
 }
 
