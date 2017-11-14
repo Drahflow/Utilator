@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-daily-websites
+# daily-websites
 
 (
   while sleep 600; do
@@ -8,8 +8,8 @@ daily-websites
 
     sync-38020
     import-mail
-    redmine ratbs pull
-    /home/drahflow/monitoring/monitor || create 'Fix broken stuff (reported by monitoring)' 2 3m
+    # redmine ratbs pull
+    # /home/drahflow/monitoring/monitor || create 'Fix broken stuff (reported by monitoring)' 2 3m
   done
 ) &
 

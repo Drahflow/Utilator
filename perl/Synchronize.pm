@@ -6,7 +6,7 @@ use Exporter;
 
 use strict;
 use warnings;
-use encoding 'utf-8';
+use utf8;
 
 use Global qw(/./);
 

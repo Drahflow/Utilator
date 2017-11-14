@@ -1,19 +1,19 @@
 #!/bin/sh
 
-currentWebsite() {
-  title="$(xwininfo -root -tree | grep Vimperator | head -n 1)"
-  winid="$(echo $title | awk '{ print $1 }')"
-  open="$(xprop -id "$winid" | grep 'window state: Normal')"
-
-  if [ "$open" != "" ]; then
-    echo $title | cut -d '"' -f 2
-  fi
-}
-
-ws=$(currentWebsite)
-
-if echo $ws | grep Twitter; then
-  expectation add focus 120s
-elif [ "$ws" != "" ]; then
+# currentWebsite() {
+#   title="$(xwininfo -root -tree | grep firefox | head -n 1)"
+#   winid="$(echo $title | awk '{ print $1 }')"
+#   open="$(xprop -id "$winid" | grep 'window state: Normal')"
+# 
+#   if [ "$open" != "" ]; then
+#     echo $title | cut -d '"' -f 2
+#   fi
+# }
+# 
+# ws=$(currentWebsite)
+# 
+# if echo $ws | grep Twitter; then
+#   expectation add focus 120s
+# elif [ "$ws" != "" ]; then
   expectation add focus 30s
-fi
+# fi
